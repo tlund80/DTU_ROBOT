@@ -1,0 +1,7 @@
+<launch>
+        <group ns="/DTI">
+                <node pkg="cal_ti" type="cal_ti" name="CalibrationGUI" output="screen">
+                </node>
+
+        </group>
+</launch>
