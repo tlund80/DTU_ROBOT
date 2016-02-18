@@ -7,7 +7,10 @@
 #include <QString>
 
 typedef pcl::PointXYZRGBA PointT;
+typedef pcl::PointXYZRGBNormal PointNT;
 typedef pcl::PointCloud<PointT> Cloud;
+typedef pcl::PointXYZRGBNormal PointTNormal;
+typedef pcl::PointCloud<PointTNormal> CloudNormal;
 typedef Cloud::Ptr CloudPtr;
 typedef Cloud::ConstPtr CloudConstPtr;
 

@@ -178,7 +178,9 @@ void cvDrawChessboardCorners(CvArr* _image, CvSize pattern_size, CvPoint2D32f* c
 
     if( !found )
     {
-        CvScalar color = {{0,0,255}};
+        //CvScalar color = {{0,0,255}};
+        cv::Scalar color(0,0,255);
+
         if( cn == 1 )
             color = cvScalarAll(200);
         color.val[0] *= scale;
@@ -203,15 +205,15 @@ void cvDrawChessboardCorners(CvArr* _image, CvSize pattern_size, CvPoint2D32f* c
         int x, y;
         CvPoint prev_pt = {0, 0};
         const int line_max = 7;
-        static const CvScalar line_colors[line_max] =
+        static const cv::Scalar line_colors[line_max] =
         {
-            {{0,0,255}},
-            {{0,128,255}},
-            {{0,200,200}},
-            {{0,255,0}},
-            {{200,200,0}},
-            {{255,0,0}},
-            {{255,0,255}}
+            cv::Scalar(0,0,255),
+            cv::Scalar(0,128,255),
+            cv::Scalar(0,200,200),
+            cv::Scalar(0,255,0),
+            cv::Scalar(200,200,0),
+            cv::Scalar(255,0,0),
+            cv::Scalar(255,0,255)
         };
 
         for( y = 0, i = 0; y < pattern_size.height; y++ )

@@ -29,10 +29,10 @@
 //#include "../core/macros.h"
 
 //OpenCV
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/contrib/contrib.hpp"
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/calib3d.hpp>
+//#include "opencv2/contrib/contrib.hpp"
 
 //PCL
 #include <pcl/point_types.h>
@@ -151,7 +151,8 @@ CloudPtr StereoMatch::compute(Mat &leftimg, Mat &rightimg,  Mat &img_colored){//
 
     switch(_algorithm){
         case STEREO_BM: {
-            StereoBM bm;
+       // Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
+            cv::StereoBM bm;
             bm.state->roi1 = roi1;
             bm.state->roi2 = roi2;
             bm.state->preFilterCap = 31;

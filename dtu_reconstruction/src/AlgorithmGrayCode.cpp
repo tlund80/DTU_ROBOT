@@ -270,7 +270,7 @@ void AlgorithmGrayCode::get3DPoints(SMCalibrationParameters calibration, const s
    // cv::cvtColor(frames0[0], color0Rect, CV_BayerBG2RGB);
     color0Rect = frames0[0];
     cv::remap(color0Rect, color0Rect, map0X, map0Y, CV_INTER_LINEAR);
-//    cv::imwrite("/home/thso/color_stl.png", color0Rect);
+ //   cv::imwrite("/home/thso/color_stl.png", color0Rect);
 
   //    frames1[0].convertTo(color1Rect, CV_8UC1, 1.0/256.0);
   //  cv::cvtColor(frames1[0], color1Rect, CV_BayerBG2RGB);
@@ -298,8 +298,8 @@ void AlgorithmGrayCode::get3DPoints(SMCalibrationParameters calibration, const s
     cv::erode(occlusion0Rect, occlusion0Rect, strel);
     cv::erode(occlusion1Rect, occlusion1Rect, strel);
 
-    cv::imwrite("/home/thso/occlusion0Rect.png", occlusion0Rect);
-    cv::imwrite("/home/thso/occlusion1Rect.png", occlusion1Rect);
+  //  cv::imwrite("/home/thso/occlusion0Rect.png", occlusion0Rect);
+  //  cv::imwrite("/home/thso/occlusion1Rect.png", occlusion1Rect);
 
 //cvtools::writeMat(frames0Rect[0], "frames0Rect_0.mat", "frames0Rect_0");
 //cvtools::writeMat(frames0Rect[1], "frames0Rect_1.mat", "frames0Rect_1");

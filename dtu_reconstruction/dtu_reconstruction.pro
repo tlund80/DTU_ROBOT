@@ -22,7 +22,7 @@ TEMPLATE = app
 
 
 SOURCES +=  src/viewdata.cpp \
-            src/stereo_match.cpp \
+          #  src/stereo_match.cpp \
             src/SMColorCalibrationWorker.cpp \
             src/SMCalibrationWorker.cpp \
             src/SMCalibrationParameters.cpp \
@@ -32,10 +32,11 @@ SOURCES +=  src/viewdata.cpp \
             src/AlgorithmGrayCode.cpp \
             #src/MacBethDetector.cpp \
             src/MacBethColorCalibrate.cpp \
-    src/SMColorCalibrationParameters.cpp
+    src/SMColorCalibrationParameters.cpp \
+    src/macros.cpp
 
 HEADERS += src/viewdata.h \
-            src/stereo_match.h \
+      #      src/stereo_match.h \
             src/SMTypes.h \
             src/SMColorCalibrationWorker.h \
             src/SMCalibrationWorker.h \
@@ -46,7 +47,13 @@ HEADERS += src/viewdata.h \
             src/Algorithm.h \
             #src/MacBethDetector.h \
             src/MacBethColorCalibrate.h \
-    src/SMColorCalibrationParameters.h
+    src/SMColorCalibrationParameters.h \
+    src/normal_correction_manifold.h \
+    src/normal_correction_manifold_impl.hpp \
+    src/dist.h \
+    src/macros.h \
+    src/traits.h \
+    src/ids.h
 
 
 # Operating System dependant linking and including
@@ -54,14 +61,30 @@ HEADERS += src/viewdata.h \
 unix:!macx {
 
     CONFIG += link_pkgconfig
-    # Link VTK and Boost (no pkg-config)
-    INCLUDEPATH += /usr/include/vtk-5.8/
-    LIBS += -lQVTK -lvtkCommon -lvtkFiltering -lvtkRendering -lvtkIO -lvtkGraphics -lvtkHybrid
+
+ # Link VTK and Boost (no pkg-config)
+    INCLUDEPATH += /usr/local/include/vtk-6.3/
+    LIBS += \
+            -lvtkGUISupportQt-6.3\
+            -lvtkCommonCore-6.3 \
+            -lvtkFiltersCore-6.3 \
+            -lvtkRenderingCore-6.3 \
+            -lvtkRenderingLOD-6.3 \
+            -lvtkCommonDataModel-6.3 \
+            -lvtkCommonMath-6.3 \
+            -lvtkIOCore-6.3 \
+            -lvtkpng-6.3 \
+            -lvtksys-6.3 \
+            -lvtktiff-6.3 \
+            -lvtkjpeg-6.3 \
+            -lvtkexpat-6.3 \
+            -lvtkzlib-6.3
+
     # PCL pkg-config workaround
-    LIBS += -lboost_system -lpcl_visualization -lpcl_common -lpcl_io -lpcl_search -lpcl_surface
+    LIBS += -lboost_system -lpcl_visualization -lpcl_common -lpcl_io -lpcl_search -lpcl_surface -lpcl_filters -lpcl_features
     # PKG-config libs
     INCLUDEPATH += /usr/local/include/pcl-1.8 /usr/include/eigen3/
-    PKGCONFIG += gl glu x11 /opt/ros/hydro/lib/pkgconfig/opencv.pc eigen3
+    PKGCONFIG += gl glu x11 /usr/local/lib/pkgconfig/opencv.pc eigen3
  #   PKGCONFIG += pcl_registration-1.8 pcl_visualization-1.8 pcl_surface-1.8 pcl_search-1.8 pcl_filters-1.8 pcl_kdtree-1.8 pcl_tracking-1.8
   #  QMAKE_CXXFLAGS += -fopenmp
   #  QMAKE_LFLAGS *= -fopenmp

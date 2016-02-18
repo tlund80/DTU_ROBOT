@@ -5,14 +5,20 @@
 #include <QDir>
 #include <QSettings>
 
-#include "stereo_match.h"
+//#include "stereo_match.h"
 #include "viewdata.h"
 #include "scenedata.h"
 
 #include <pcl/common/bivariate_polynomial.h>
 #include <pcl/io/ply_io.h>
+#include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
+#include <pcl/registration/gicp6d.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/filters/normal_refinement.h>
+#include <pcl/filters/filter.h>
+#include "normal_correction_manifold.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Core>
@@ -25,8 +31,6 @@
 #include "SMCalibrationWorker.h"
 #include "SMCalibrationParameters.h"
 #include "AlgorithmGrayCode.h"
-
-
 
 using namespace Eigen;
 
@@ -389,7 +393,7 @@ void loadAllData(QString folder_name, std::vector<SceneData> &scenes){
 
 void reconstructStereo(ViewData &view, unsigned int view_id){
 
-    QSettings settings;
+/*    QSettings settings;
     SMCalibrationParameters calibration;// = settings.value("calibration/parameters").value<SMCalibrationParameters>();
     calibration.importFromXML("Calibration.xml");
    // calibration.print();
@@ -416,9 +420,10 @@ void reconstructStereo(ViewData &view, unsigned int view_id){
     pcl::io::savePLYFileBinary(ss.str(), *cloud);
     std::cout << ".....Done!!" << std::endl;
        //  pcl::io::savePCDFile(ss.str(), *cloud);
+       */
 }
 
-pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr reconstructSTL(ViewData &view, unsigned int view_id){
+pcl::PointCloud<PointNT>::Ptr reconstructSTL(ViewData &view, unsigned int view_id){
 
     std::cout << "Reconstruct view nr: " << view.getViewNr() << ".....";
 
@@ -437,7 +442,7 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr reconstructSTL(ViewData &view, unsi
     std::cout << "Q: " << Q.size() << std::endl;
 
     // Convert point cloud to PCL format
-    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pointCloudPCL(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+    pcl::PointCloud<PointNT>::Ptr pointCloudPCL(new pcl::PointCloud<PointNT>);
 
     pointCloudPCL->width = Q.size();
     pointCloudPCL->height = 1;
@@ -445,19 +450,81 @@ pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr reconstructSTL(ViewData &view, unsi
     pointCloudPCL->points.resize(Q.size());
 
    for(unsigned int i=0; i<Q.size(); i++){
-      pcl::PointXYZRGBNormal point;
+      PointNT point;
       point.x = Q[i].x; point.y = Q[i].y; point.z = Q[i].z;
       point.r = color[i][0]; point.g = color[i][1]; point.b = color[i][2];
       pointCloudPCL->points[i] = point;
    }
 
-/*   std::stringstream ss; ss << "/home/thso/stl_"; ss << view_id; ss << ".ply";
+   //Compute cloud resolution
+    pcl::search::KdTree<PointNT> s;
+    const int k = 5;
+    std::vector<std::vector<int> > idx;
+    std::vector<std::vector<float> > distsq;
+
+    s.setInputCloud(pointCloudPCL);
+    s.nearestKSearch(*pointCloudPCL, std::vector<int>(), 5, idx, distsq);
+    double resolution = 0.0f;
+    for(size_t i = 0; i < pointCloudPCL->size(); ++i) {
+        double resi = 0.0f;
+        for(int j = 1; j < k; ++j)
+            resi += sqrtf(distsq[i][j]);
+        resi /= double(k - 1);
+        resolution += resi;
+    }
+    resolution /= double(pointCloudPCL->size());
+
+    //Estimate surface normals
+   pcl::NormalEstimationOMP<PointNT, PointNT> ne;
+    ne.setInputCloud (pointCloudPCL);
+    pcl::search::KdTree<PointNT>::Ptr search_tree (new pcl::search::KdTree<PointNT>);
+    ne.setSearchMethod (search_tree);
+    ne.setRadiusSearch (5.0f * resolution);
+    ne.setViewPoint(0,0,1);
+    ne.compute (*pointCloudPCL);
+
+/*   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal> ());
+   pcl::PointCloud<pcl::Normal>::Ptr normals_refined(new pcl::PointCloud<pcl::Normal>);
+
+   // Search parameters
+   //const int k = 5;
+   std::vector<std::vector<int> > k_indices;
+   std::vector<std::vector<float> > k_sqr_distances;
+   // Run search
+   pcl::search::KdTree<PointNT> search;
+   search.setInputCloud (pointCloudPCL);
+   search.nearestKSearch (*pointCloudPCL, std::vector<int> (), k, k_indices, k_sqr_distances);
+
+   // Use search results for normal estimation
+   pcl::NormalEstimationOMP<PointNT, pcl::Normal> ne;
+     for (unsigned int i = 0; i < pointCloudPCL->size (); ++i){
+     pcl::Normal normal;
+     ne.computePointNormal (*pointCloudPCL, k_indices[i],
+                            normal.normal_x, normal.normal_y, normal.normal_z, normal.curvature);
+     pcl::flipNormalTowardsViewpoint (pointCloudPCL->at(i), 0, 0, 1,
+                                      normal.normal_x, normal.normal_y, normal.normal_z);
+     cloud_normals->push_back (normal);
+     }
+
+     std::cout << "cloud_normals " << cloud_normals->size() << std::endl;
+     // Run refinement using search results
+    // pcl::NormalRefinement<pcl::Normal> nr (k_indices, k_sqr_distances);
+    // nr.setInputCloud (cloud_normals);
+    // nr.filter (*normals_refined);
+
+     pcl::PointCloud<PointNT>::Ptr cloud_subsampled_with_normals (new pcl::PointCloud<PointNT> ());
+     pcl::concatenateFields (*pointCloudPCL, *cloud_normals, *cloud_subsampled_with_normals);
+*/
+   // if(!pointCloudPCL->empty())
+   //     covis::feature::computeCorrectedNormals(*pointCloudPCL,true,30,5*resolution);
+
+   std::stringstream ss; ss << "/home/thso/stl_"; ss << view_id; ss << ".ply";
    pcl::PLYWriter w;
    // Write to ply in binary without camera
-   w.write<pcl::PointXYZRGBNormal> (ss.str(), *pointCloudPCL, true, false);
+   w.write<PointNT> (ss.str(), *pointCloudPCL, true, false);
  //  pcl::io::savePLYFileBinary(ss.str(), *pointCloudPCL);
    std::cout << ".....Done!!" << std::endl;
-*/
+
 
   delete gc;
 
@@ -553,159 +620,263 @@ cv::Mat loadHandEye(QString path)
 
 }
 
-void alignKinectScene(SceneData &scene){
+void alignKinectScene(QString base_path){
 
-    CloudPtr cloud(new Cloud);
+    //Load robot poses
+    std::stringstream ss; ss << base_path.toStdString(); ss << "robot_positions.txt";
+    std::vector<Affine3f> poses = loadRobotPoses(QString::fromStdString(ss.str()));
 
-    std::vector<Affine3d> T;
-
-    Affine3d transform = Affine3d::Identity();
-    // pose 1
-    transform.translation() << 603.03, -858.81, 280.29;
-    transform.rotate (Quaterniond(0.092, 0.701, 0.701, -0.092));
-    T.push_back(transform);
-    // pose 2
-    transform.translation() << 603.02, -413.53, 743.32;
-    transform.rotate (Quaterniond(0.327, 0.627, 0.627, -0.326));
-    T.push_back(transform);
-    // pose 3
-    transform.translation() << 1209.44, -605.17, 280.29;
-    transform.rotate (Quaterniond(0.121, 0.379, 0.916, -0.05));
-    T.push_back(transform);
-    // pose 4
-    transform.translation() << 894.57, -290.29, 743.32;
-    transform.rotate (Quaterniond(0.427, 0.339, 0.819, -0.177));
-    T.push_back(transform);
-    // pose 5
-    transform.translation() << 1358.84, 3.02, 280.29;
-    transform.rotate (Quaterniond(0.131, 0.0, 0.991, 0.0));
-    T.push_back(transform);
-    // pose 6
-    transform.translation() << 1358.83, 3.01, 173.19;
-    transform.rotate (Quaterniond(0.131, 0.0, 0.991, 0.0));
-    T.push_back(transform);
-    // pose 7
-    transform.translation() << 1013.56, 3.02, 743.32;
-    transform.rotate (Quaterniond(0.462, 0.0, 0.887, 0.0));
-    T.push_back(transform);
-    // pose 8
-    transform.translation() << 1205.18, 609.44, 280.29;
-    transform.rotate (Quaterniond(0.121, -0.379, 0.916, 0.05));
-    T.push_back(transform);
-    // pose 9
-    transform.translation() << 890.31, 294.57, 743.33;
-    transform.rotate (Quaterniond(0.427, -0.339, 0.819, 0.177));
-    T.push_back(transform);
-    // pose 10
-    transform.translation() << 597.0, 858.84, 280.28;
-    transform.rotate (Quaterniond(0.092, -0.701, 0.701, 0.092));
-    T.push_back(transform);
-    // pose 11
-    transform.translation() << 597.0, 413.57, 743.33;
-    transform.rotate (Quaterniond(0.327, -0.627, 0.627, 0.327));
-    T.push_back(transform);
-
+    std::vector<CloudPtr > clouds;
+    std::vector<CloudPtr > cloudsT;
 
     //Load Hand eye transform
-   cv::Mat handeye = loadHandEye("/home/thso/DTUData/calibration/131215/kinect/HandEyeAlignment.yml");
-   Affine3d he = Affine3d::Identity();
-   he.translation() << handeye.at<double>(0,3), handeye.at<double>(1,3), handeye.at<double>(2,3);
+   cv::Mat handeye = loadHandEye("/home/thso/DTU_ROBOT/dtu_reconstruction/build/Kinect_he_alignment.yml");
+   Affine3f he = Affine3f::Identity();
+   he.translation() << static_cast<float>(handeye.at<double>(0,3)), static_cast<float>(handeye.at<double>(1,3)), static_cast<float>(handeye.at<double>(2,3));
 
-   Matrix3d rot =  Matrix3d::Identity();
-   rot<< handeye.at<double>(0,0), handeye.at<double>(0,1), handeye.at<double>(0,2),
-                          handeye.at<double>(1,0), handeye.at<double>(1,1), handeye.at<double>(1,2),
-                          handeye.at<double>(2,0), handeye.at<double>(2,1), handeye.at<double>(2,2);
+   Matrix3f rot =  Matrix3f::Identity();
+   rot<< static_cast<float>(handeye.at<double>(0,0)), static_cast<float>(handeye.at<double>(0,1)), static_cast<float>(handeye.at<double>(0,2)),
+         static_cast<float>(handeye.at<double>(1,0)), static_cast<float>(handeye.at<double>(1,1)), static_cast<float>(handeye.at<double>(1,2)),
+         static_cast<float>(handeye.at<double>(2,0)), static_cast<float>(handeye.at<double>(2,1)), static_cast<float>(handeye.at<double>(2,2));
+
    he.rotate(rot);
 
    std::cout << "Hand eye transform: \n" << he.matrix() << std::endl;
 
-    // Print the transformation
-//    printf ("\nMethod #2: using an Affine3f\n");
-//    std::cout << transform.matrix() << std::endl;
+   //Load kinect clouds
+   QDir view_directory(base_path);
+   view_directory.setFilter(QDir::AllDirs | QDir::NoDotAndDotDot | QDir::NoSymLinks);
+   QFileInfoList views = view_directory.entryInfoList();
 
-    Affine3d acc = Affine3d::Identity();
-    CloudPtr out (new Cloud);
+   assert(poses.size() == views.size());
 
-    for(int i = 1; i< scene.data.size(); i++){
-        boost::shared_ptr<ViewData> v = scene.data.at(i);
+   unsigned int view_id= 0;
+   /// Loops through the found views Pos_xx
+   foreach(const QFileInfo &view, views) {
+    //Load .ply files
+    Cloud::Ptr cloud(new Cloud);
+    pcl::PCDReader reader;
+    std::stringstream ss; ss << view.absoluteFilePath().toStdString(); ss << "/kinect/kinect_cloud.pcd";
+    std::cout << "Loading: " << ss.str() << std::endl;
+    if(reader.read(ss.str(),*cloud));
+       clouds.push_back(cloud);
 
-        Affine3d tr = T[i];
-        Affine3d tr_1 = T[i-1];
+    view_id++;
+   }
 
- std::cout << "T: \n" << tr.translation() << std::endl;
-  std::cout << "T-1: \n" << tr_1.translation() << std::endl;
-   std::cout << "T-1 - T: \n" << tr_1.translation()-tr.translation() << std::endl;
-     //   std::cout << "Tool frame: \n" << tr.matrix() << std::endl;
+   //Rough alignment utilizing the robot poses
+   for(size_t i = 0; i < clouds.size (); ++i){
+       CloudPtr source = clouds[i];
+
+       Affine3f T_rob = poses[i];
+       Matrix4f T_align = T_rob.matrix() * he.matrix();
+       std::cout << "----------------------------------\n" << std::endl;
+       std::cout << T_align << std::endl;
+       std::cout << "----------------------------------\n" << std::endl;
+       pcl::transformPointCloud(*source,*source,T_align);
+
+       //Remove Nans
+       std::vector<int> indices;
+       pcl::removeNaNFromPointCloud(*source, *source, indices);
+
+       cloudsT.push_back(source);
+
+       //Save transformed model
+       pcl::PLYWriter writer;
+       ss.str(""); ss << "/home/thso"; ss << "/kinect_world_"; ss << i; ss << ".ply";
+       std::cout << "Saving: " << ss.str() << std::endl;
+       writer.write(ss.str(),*source);
+   }
 
 
-          acc.translate(tr_1.translation()-tr.translation());
-        //  tr.rotate(rot);
-          std::cout << "Camera frame: \n" <<  tr.matrix() << std::endl;
+
+}
+
+void alignSTLScene(QString base_path){
+
+    std::stringstream ss; ss << base_path.toStdString(); ss << "robot_positions.txt";
+    std::vector<Affine3f> poses = loadRobotPoses(QString::fromStdString(ss.str()));
+
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > clouds;
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsT;
+
+    double scan_resolution = 0.0f;
+
+    QDir view_directory(base_path);
+    view_directory.setFilter(QDir::AllDirs | QDir::NoDotAndDotDot | QDir::NoSymLinks);
+    QFileInfoList views = view_directory.entryInfoList();
+
+    assert(poses.size() == views.size());
+
+    unsigned int view_id= 0;
+    /// Loops through the found views Pos_xx
+    foreach(const QFileInfo &view, views) {
+     //Load .ply files
+     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+     pcl::PLYReader reader;
+     std::stringstream ss; ss << view.absoluteFilePath().toStdString(); ss << "/stl_"; ss << view_id; ss << ".ply";
+     std::cout << "Loading: " << ss.str() << std::endl;
+     if(reader.read(ss.str(),*cloud));
+        clouds.push_back(cloud);
+
+     view_id++;
+    }
+
+    //Rough alignment utilizing the robot poses
+    Affine3f he = Affine3f::Identity();
+    he.translation() << 164.1, -130.27, 135.6;
+    AngleAxisf yawAngle(float(92.06 * 0.0174532925),Eigen::Vector3f::UnitX());
+    AngleAxisf pitchAngle(0.93 * 0.0174532925,Eigen::Vector3f::UnitY());
+    AngleAxisf rollAngle(101.95 * 0.0174532925,Eigen::Vector3f::UnitZ());
+    Quaternionf f = rollAngle*pitchAngle*yawAngle;
+    he.rotate (f);
+
+    //std::cout << "Hand eye transform: \n" << he.matrix() << std::endl;
+
+    for(size_t i = 1; i < clouds.size (); ++i){
+        CloudNormal::Ptr source = clouds[i];
+
+        Affine3f T_rob = poses[i];
+        Matrix4f T_align = T_rob.matrix() * he.matrix();
+        pcl::transformPointCloud(*source,*source,T_align);
+        cloudsT.push_back(source);
+
+        //Compute cloud resolution for each sub scan
+         pcl::search::KdTree<PointNT> s;
+         const int k = 5;
+         std::vector<std::vector<int> > idx;
+         std::vector<std::vector<float> > distsq;
+
+         s.setInputCloud(source);
+         s.nearestKSearch(*source, std::vector<int>(), 5, idx, distsq);
+         double resolution = 0.0f;
+         for(size_t i = 0; i < source->size(); ++i) {
+             double resi = 0.0f;
+             for(int j = 1; j < k; ++j)
+                 resi += sqrtf(distsq[i][j]);
+             resi /= double(k - 1);
+             resolution += resi;
+         }
+         resolution /= double(source->size());
+         std::cout << "resolution: " << resolution << std::endl;
+         scan_resolution += resolution;
+
+         //Save transformed model
+        pcl::PLYWriter writer;
+        ss.str(""); ss << "/home/thso"; ss << "/stl_world_"; ss << i; ss << ".ply";
+        std::cout << "Saving: " << ss.str() << std::endl;
+        writer.write(ss.str(),*source);
+    }
+
+    scan_resolution /= double(clouds.size());
+
+    std::cout << "scan_resolution: " << scan_resolution << std::endl;
+    for (size_t j = 2; j < cloudsT.size (); ++j){
+        CloudNormal::Ptr source = cloudsT[j];
+        CloudNormal::Ptr target = cloudsT[j-1];
+
+        assert(!source->empty());
+        assert(!target->empty());
+
+        //Registre each view
+        CloudNormal tmp;
+        Matrix4f transform_;
+        const float inlier_threshold_icp =1.5;
+
+/*        pcl::GeneralizedIterativeClosestPoint6D gicp6d;
+
+        PCL_INFO("Refining pose using Color ICP with an inlier threshold of %f...\n", inlier_threshold_icp);
+        gicp6d.setInputSource(source);
+        gicp6d.setInputTarget(target);
+        gicp6d.setMaximumIterations(200);
+        gicp6d.setMaxCorrespondenceDistance(inlier_threshold_icp);
+        gicp6d.align(tmp, transform_);
+
+        if(!gicp6d.hasConverged()) {
+           PCL_ERROR("Color-ICP failed!\n");
+           return;
+        }
+  */
+        ss.str(""); ss << "/home/thso"; ss << "/src_"; ss << j; ss << ".ply";
+        pcl::io::savePLYFile(ss.str(),*source);
+        ss.str(""); ss << "/home/thso"; ss << "/tar_"; ss << j; ss << ".ply";
+        pcl::io::savePLYFile(ss.str(),*target);
+
+        pcl::IterativeClosestPoint<PointTNormal,PointTNormal> icp;
+        PCL_INFO("Refining pose using ICP with an inlier threshold of %f...\n", inlier_threshold_icp);
+
+        icp.setInputSource(source);
+        icp.setInputTarget(target);
+        icp.setMaximumIterations(200);
+        //icp.setEuclideanFitnessEpsilon(1e9);
+        //icp.setTransformationEpsilon(1e9);
+        icp.setMaxCorrespondenceDistance(inlier_threshold_icp);
+        icp.align(tmp);
+
+        if(!icp.hasConverged()) {
+          PCL_ERROR("ICP failed!\n");
+          return;
+        }
 
 
-      //  std::cout << "Camera frame: \n" <<  tr.matrix() << std::endl;
+        PCL_INFO("Rerunning fine Color-ICP with an inlier threshold of %f...\n", 0.5 * inlier_threshold_icp);
+        icp.setMaximumIterations(100);
+        icp.setMaxCorrespondenceDistance(0.5 * inlier_threshold_icp);
+        icp.align(tmp, icp.getFinalTransformation());
+
+        if(!icp.hasConverged()) {
+            PCL_ERROR("Fine ICP failed!\n");
+            return;
+        }
+
+        PCL_INFO("Rerunning ultra-fine Color-ICP at full resolution with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+    //    icp.setInputSource(source);
+    //    icp.setInputTarget(cloud_dst_);
+        icp.setMaximumIterations(50);
+        icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
+        icp.align(tmp, icp.getFinalTransformation());
+
+        if(!icp.hasConverged()) {
+            PCL_ERROR("Ultra-fine ICP failed!\n");
+            return;
+        }
+
+    transform_ = icp.getFinalTransformation();
 
 
-        pcl::transformPointCloud(*v->getKinectCloud(),*out,acc);
-        // *cloud += *out;
-        std::stringstream ss; ss << "/home/thso/full_kinect_"; ss << i; ss << ".pcd";
-          pcl::io::savePCDFileBinaryCompressed(ss.str(), *out);
+        CloudNormal::Ptr cloud_aligned_ (new CloudNormal);
+        pcl::transformPointCloud<PointTNormal>(*source, *cloud_aligned_, transform_);
+
+        //Save transformed model
+        pcl::PLYWriter writer;
+        ss.str(""); ss << "/home/thso"; ss << "/stl_align_"; ss << j; ss << ".ply";
+        std::cout << "Saving: " << ss.str() << std::endl;
+        writer.write(ss.str(),*cloud_aligned_);
+
     }
 
 
 
-}
 
-void alignSTLScene(SceneData &scene){
-
-}
-
-void computeBoundingBox( pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr &cloud_filtered, Eigen::Vector3f &tra, Eigen::Quaternionf &rot,
-    pcl::PointXYZ &min_pt,pcl::PointXYZ &max_pt){
-   // Placeholder for the 3x3 covariance matrix at each surface patch
-  EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
-  // 16-bytes aligned placeholder for the XYZ centroid of a surface patch
-  Eigen::Vector4f xyz_centroid;
-
-  pcl::console::print_highlight ("Computing centroid...\n");
-  pcl::compute3DCentroid(*cloud_filtered,xyz_centroid);
-
-  pcl::console::print_highlight ("Computing bounding box...\n");
-  Eigen::Matrix3f covariance;
-  // Compute the 3x3 covariance matrix
-  pcl::computeCovarianceMatrixNormalized(*cloud_filtered, xyz_centroid, covariance);
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
-  Eigen::Matrix3f eigDx = eigen_solver.eigenvectors();
-  eigDx.col(2) = eigDx.col(0).cross(eigDx.col(1));
-
-    // move the points to the that reference frame
-  Eigen::Matrix4f p2w(Eigen::Matrix4f::Identity());
-  p2w.block<3,3>(0,0) = eigDx.transpose();
-  p2w.block<3,1>(0,3) = -1.f * (p2w.block<3,3>(0,0) * xyz_centroid.head<3>());
-  pcl::PointCloud<pcl::PointXYZ> cPoints;
-  pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
-  pcl::copyPointCloud(*cloud_filtered, cloud_xyz);
-  pcl::transformPointCloud(cloud_xyz, cPoints, p2w);
-
-  // std::cout << "centroid -> x: " << xyz_centroid[0] << " y: " << xyz_centroid[1] << " z: " <<  xyz_centroid[2] << std::endl;
- // PointT min_pt;
- // PointT max_pt;
-
-
-  pcl::getMinMax3D(cPoints, min_pt, max_pt);
- // std::cout << "min_pt: \n " << min_pt << std::endl;
- // std::cout << "max_pt: \n " << max_pt << std::endl;
-  Eigen::Vector3f mean_diag;
-  mean_diag[0] = 0.5f*(max_pt.x + min_pt.x);
-  mean_diag[1] = 0.5f*(max_pt.y + min_pt.y);
-  mean_diag[2] = 0.5f*(max_pt.z + min_pt.z);
-
-  // final transform
-  //const Eigen::Quaternionf
-  rot = Eigen::Quaternionf(eigDx);
-  tra = eigDx*mean_diag + xyz_centroid.head<3>();
-  std::cout << "tra-> x: " << tra[0] << " y: " << tra[1] << " z: " << tra[2] << std::endl;
-
+    // save meshlab aln project file
+/*        std::ofstream s(QString("%1/alignment.aln").arg(directory).toLocal8Bit());
+    s << pointCloudData.size() << std::endl;
+    for(unsigned int i=0; i<pointCloudData.size(); i++){
+        QString fileName = QString("pointcloud_%1.ply").arg(i);
+        s << fileName.toStdString() << std::endl << "#" << std::endl;
+        cv::Mat Tr = cv::Mat::eye(4, 4, CV_32F);
+        cv::Mat(pointCloudData[i].R.t()).copyTo(Tr.colRange(0, 3).rowRange(0, 3));
+        cv::Mat(-pointCloudData[i].R.t()*pointCloudData[i].T).copyTo(Tr.col(3).rowRange(0, 3));
+        for(int j=0; j<Tr.rows; j++){
+            for(int k=0; k<Tr.cols; k++){
+                s << Tr.at<float>(j,k) << " ";
+            }
+            s << std::endl;
+        }
+    }
+    s << "0" << std::flush;
+    s.close();
+*/
 
 }
 
@@ -756,6 +927,7 @@ int main(int argc, char *argv[])
         }else if (argsFolder.indexIn(args.at(i)) != -1 ){
             folder_name = args.at(i+1);
         }else if (argsAlign.indexIn(args.at(i)) != -1 ){
+             folder_name = args.at(i+1);
              align = true;
         }else if (argsCalib.indexIn(args.at(i)) != -1 ){
             calib_path = args.at(i+1);
@@ -849,91 +1021,8 @@ int main(int argc, char *argv[])
 
     //Align STL scene
     if(align){
-        std::stringstream ss; ss << folder_name.toStdString(); ss << "robot_positions.txt";
-        std::vector<Affine3f> poses = loadRobotPoses(QString::fromStdString(ss.str()));
-
-        std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > clouds;
-        std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsT;
-
-        QDir view_directory(folder_name);
-        view_directory.setFilter(QDir::AllDirs | QDir::NoDotAndDotDot | QDir::NoSymLinks);
-        QFileInfoList views = view_directory.entryInfoList();
-
-         if(poses.size() != views.size()){
-             return 0;
-         }
-
-        unsigned int view_id= 0;
-        /// Loops through the found views Pos_xx
-        foreach(const QFileInfo &view, views) {
-         //Load .ply files
-         pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-         pcl::PLYReader reader;
-         std::stringstream ss; ss << view.absoluteFilePath().toStdString(); ss << "/stl_"; ss << view_id; ss << ".ply";
-         std::cout << "Loading: " << ss.str() << std::endl;
-         if(reader.read(ss.str(),*cloud));
-            clouds.push_back(cloud);
-
-         view_id++;
-        }
-
-
-        Affine3f he = Affine3f::Identity();
-        he.translation() << 164.1, -130.27, 135.6;
-        AngleAxisf yawAngle(float(92.06 * 0.0174532925),Eigen::Vector3f::UnitX());
-        AngleAxisf pitchAngle(0.93 * 0.0174532925,Eigen::Vector3f::UnitY());
-        AngleAxisf rollAngle(101.95 * 0.0174532925,Eigen::Vector3f::UnitZ());
-        Quaternionf f = rollAngle*pitchAngle*yawAngle;
-        he.rotate (f);
-
-
-         for (size_t i = 1; i < clouds.size (); ++i){
-            pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr source = clouds[i-1];
-            pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr target = clouds[i];
-
-            Affine3f T_rob = poses[i-1];
-            Matrix4f T_align = T_rob.matrix() * he.matrix();
-
-          /*  std::cout << "----------------------------------------------------\n" << std::endl;
-            std::cout << "HE: \n" << he.matrix() << std::endl;
-            std::cout << "Robot pose: \n" << T_rob.matrix() << std::endl;
-            std::cout << "T_align: \n" <<  T_align << std::endl;
-            std::cout << "----------------------------------------------------\n" << std::endl;
-           */
-            pcl::transformPointCloud(*source,*source,T_align);
-
-            //Registre each view
-
-            //Save transformed model
-            pcl::PLYWriter writer;
-            ss.str(""); ss << "/home/thso"; ss << "/stl_world_"; ss << i; ss << ".ply";
-            std::cout << "Saving: " << ss.str() << std::endl;
-            writer.write(ss.str(),*source);
-
-        }
-
-
-
-
-        // save meshlab aln project file
-/*        std::ofstream s(QString("%1/alignment.aln").arg(directory).toLocal8Bit());
-        s << pointCloudData.size() << std::endl;
-        for(unsigned int i=0; i<pointCloudData.size(); i++){
-            QString fileName = QString("pointcloud_%1.ply").arg(i);
-            s << fileName.toStdString() << std::endl << "#" << std::endl;
-            cv::Mat Tr = cv::Mat::eye(4, 4, CV_32F);
-            cv::Mat(pointCloudData[i].R.t()).copyTo(Tr.colRange(0, 3).rowRange(0, 3));
-            cv::Mat(-pointCloudData[i].R.t()*pointCloudData[i].T).copyTo(Tr.col(3).rowRange(0, 3));
-            for(int j=0; j<Tr.rows; j++){
-                for(int k=0; k<Tr.cols; k++){
-                    s << Tr.at<float>(j,k) << " ";
-                }
-                s << std::endl;
-            }
-        }
-        s << "0" << std::flush;
-        s.close();
-*/
+        alignSTLScene(folder_name);
+      //  alignKinectScene(folder_name);
     }
 
 
