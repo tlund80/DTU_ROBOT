@@ -1,0 +1,11 @@
+﻿Build started 03-04-2016 12:17:04.
+     1>Project "C:\DTU_ROBOT\manual_registration_win\manual_registration_win.vcxproj" on node 2 (Build target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(935,5): warning MSB8027: Two or more files with the name of moc_manual_registration.cpp will produce outputs to the same location. This can lead to an incorrect build result.  The files involved are GeneratedFiles\Debug\moc_manual_registration.cpp, GeneratedFiles\Release\moc_manual_registration.cpp, build\release\moc_manual_registration.cpp.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /I"..\..\Program Files\PCL\include\pcl-1.8" /I"..\..\Program Files\Boost\include\boost-1_56" /I..\..\DTIVision\3rdParty\Eigen\include /I"..\..\Program Files\flann\include" /I"..\..\Program Files\VTK\include\vtk-6.1" /I..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include /I..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets /I..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui /I..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore /Idebug /I. /I"..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013" /I.\GeneratedFiles /Zi /nologo /W3 /WX- /Od /D _WINDOWS /D DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED /D QT_CORE_LIB /D QT_GUI_LIB /D QT_WIDGETS_LIB /D UNICODE /D UNICODE /D WIN32 /D WIN32 /D WIN64 /Gm- /EHsc /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /GR /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt -Zm200 -w34100 -w34189 src\manual_registration.cpp
+         manual_registration.cpp
+     1>Done Building Project "C:\DTU_ROBOT\manual_registration_win\manual_registration_win.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:06.12

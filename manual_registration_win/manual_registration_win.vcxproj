@@ -1,0 +1,326 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{20293D68-B1EC-3412-8137-F481220C0452}</ProjectGuid>
+    <RootNamespace>manual_registration_win</RootNamespace>
+    <Keyword>Qt4VSv1.0</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <PlatformToolSet>v120</PlatformToolSet>
+    <OutputDirectory>release\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>release\</IntermediateDirectory>
+    <PrimaryOutput>manual_registration_win</PrimaryOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <PlatformToolSet>v120</PlatformToolSet>
+    <OutputDirectory>release\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>release\</IntermediateDirectory>
+    <PrimaryOutput>manual_registration_win</PrimaryOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <PlatformToolSet>v120</PlatformToolSet>
+    <OutputDirectory>debug\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>debug\</IntermediateDirectory>
+    <PrimaryOutput>manual_registration_win</PrimaryOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <PlatformToolSet>v120</PlatformToolSet>
+    <OutputDirectory>debug\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>debug\</IntermediateDirectory>
+    <PrimaryOutput>manual_registration_win</PrimaryOutput>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Platform)\$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">manual_registration_win</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">manual_registration_win</TargetName>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</IgnoreImportLibrary>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</IgnoreImportLibrary>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">manual_registration_win</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">manual_registration_win</TargetName>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</IgnoreImportLibrary>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\Program Files\PCL\include\pcl-1.8;..\..\Program Files\Boost\include\boost-1_56;..\..\DTIVision\3rdParty\Eigen\include;..\..\Program Files\flann\include;..\..\Program Files\VTK\include\vtk-6.1;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore;release;.;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013;.\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-Zm200 -w34100 -w34189 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerListingLocation>release\</AssemblerListingLocation>
+      <BrowseInformation>false</BrowseInformation>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>glu32.lib;opengl32.lib;gdi32.lib;user32.lib;$(QTDIR)\lib\qtmain.lib;$(QTDIR)\lib\Qt5Core.lib;"C:\Program Files\PCL\lib\pcl_common_release.lib";"C:\Program Files\PCL\lib\pcl_features_release.lib";"C:\Program Files\PCL\lib\pcl_filters_release.lib";"C:\Program Files\PCL\lib\pcl_io_ply_release.lib";"C:\Program Files\PCL\lib\pcl_io_release.lib";"C:\Program Files\PCL\lib\pcl_kdtree_release.lib";"C:\Program Files\PCL\lib\pcl_keypoints_release.lib";"C:\Program Files\PCL\lib\pcl_ml_release.lib";"C:\Program Files\PCL\lib\pcl_octree_release.lib";"C:\Program Files\PCL\lib\pcl_outofcore_release.lib";"C:\Program Files\PCL\lib\pcl_people_release.lib";"C:\Program Files\PCL\lib\pcl_recognition_release.lib";"C:\Program Files\PCL\lib\pcl_registration_release.lib";"C:\Program Files\PCL\lib\pcl_sample_consensus_release.lib";"C:\Program Files\PCL\lib\pcl_search_release.lib";"C:\Program Files\PCL\lib\pcl_segmentation_release.lib";"C:\Program Files\PCL\lib\pcl_surface_release.lib";"C:\Program Files\PCL\lib\pcl_tracking_release.lib";"C:\Program Files\PCL\lib\pcl_visualization_release.lib";"C:\Program Files\Boost\lib\libboost_system-vc120-mt-1_56.lib";"C:\Program Files\VTK\lib\vtkCommonCore-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonMath-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonDataModel-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonExecutionModel-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingLOD-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQt-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQtOpenGL-6.1.lib";"C:\Program Files\VTK\lib\vtkInteractionStyle-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersSources-6.1.lib";$(QTDIR)\lib\Qt5Widgets.lib;$(QTDIR)\lib\Qt5Gui.lib;$(QTDIR)\lib\Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;$(QTDIR)\lib;$(QTDIR)\lib;"C:\Program Files\PCL\lib";"C:\Program Files\Boost\lib";"C:\Program Files\VTK\lib";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <LinkIncremental>false</LinkIncremental>
+      <OutputFile>$(OutDir)\manual_registration_win.exe</OutputFile>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\Program Files\PCL\include\pcl-1.8;..\..\Program Files\Boost\include\boost-1_56;..\..\DTIVision\3rdParty\Eigen\include;..\..\Program Files\flann\include;..\..\Program Files\VTK\include\vtk-6.1;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore;release;.;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013;.\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-Zm200 -w34100 -w34189 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerListingLocation>release\</AssemblerListingLocation>
+      <BrowseInformation>false</BrowseInformation>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>_WINDOWS;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_NO_DEBUG;QT_WIDGETS_LIB;UNICODE;UNICODE;WIN32;WIN32;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>glu32.lib;opengl32.lib;gdi32.lib;user32.lib;$(QTDIR)\lib\qtmain.lib;$(QTDIR)\lib\Qt5Core.lib;"C:\Program Files\PCL\lib\pcl_common_release.lib";"C:\Program Files\PCL\lib\pcl_features_release.lib";"C:\Program Files\PCL\lib\pcl_filters_release.lib";"C:\Program Files\PCL\lib\pcl_io_ply_release.lib";"C:\Program Files\PCL\lib\pcl_io_release.lib";"C:\Program Files\PCL\lib\pcl_kdtree_release.lib";"C:\Program Files\PCL\lib\pcl_keypoints_release.lib";"C:\Program Files\PCL\lib\pcl_ml_release.lib";"C:\Program Files\PCL\lib\pcl_octree_release.lib";"C:\Program Files\PCL\lib\pcl_outofcore_release.lib";"C:\Program Files\PCL\lib\pcl_people_release.lib";"C:\Program Files\PCL\lib\pcl_recognition_release.lib";"C:\Program Files\PCL\lib\pcl_registration_release.lib";"C:\Program Files\PCL\lib\pcl_sample_consensus_release.lib";"C:\Program Files\PCL\lib\pcl_search_release.lib";"C:\Program Files\PCL\lib\pcl_segmentation_release.lib";"C:\Program Files\PCL\lib\pcl_surface_release.lib";"C:\Program Files\PCL\lib\pcl_tracking_release.lib";"C:\Program Files\PCL\lib\pcl_visualization_release.lib";"C:\Program Files\Boost\lib\libboost_system-vc120-mt-1_56.lib";"C:\Program Files\VTK\lib\vtkCommonCore-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonMath-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonDataModel-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonExecutionModel-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingLOD-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQt-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQtOpenGL-6.1.lib";"C:\Program Files\VTK\lib\vtkInteractionStyle-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersSources-6.1.lib";$(QTDIR)\lib\Qt5Widgets.lib;$(QTDIR)\lib\Qt5Gui.lib;$(QTDIR)\lib\Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;$(QTDIR)\lib;$(QTDIR)\lib;"C:\Program Files\PCL\lib";"C:\Program Files\Boost\lib";"C:\Program Files\VTK\lib";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>"/MANIFESTDEPENDENCY:type=%27win32%27 name=%27Microsoft.Windows.Common-Controls%27 version=%276.0.0.0%27 publicKeyToken=%276595b64144ccf1df%27 language=%27*%27 processorArchitecture=%27*%27" %(AdditionalOptions)</AdditionalOptions>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <LinkIncremental>false</LinkIncremental>
+      <OutputFile>$(OutDir)\manual_registration_win.exe</OutputFile>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\Program Files\PCL\include\pcl-1.8;..\..\Program Files\Boost\include\boost-1_56;..\..\DTIVision\3rdParty\Eigen\include;..\..\Program Files\flann\include;..\..\Program Files\VTK\include\vtk-6.1;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore;debug;.;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013;.\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-Zm200 -w34100 -w34189 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerListingLocation>debug\</AssemblerListingLocation>
+      <BrowseInformation>false</BrowseInformation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <WarningLevel>Level3</WarningLevel>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>glu32.lib;opengl32.lib;gdi32.lib;user32.lib;$(QTDIR)\lib\qtmaind.lib;$(QTDIR)\lib\Qt5Cored.lib;"C:\Program Files\PCL\lib\pcl_common_release.lib";"C:\Program Files\PCL\lib\pcl_features_release.lib";"C:\Program Files\PCL\lib\pcl_filters_release.lib";"C:\Program Files\PCL\lib\pcl_io_ply_release.lib";"C:\Program Files\PCL\lib\pcl_io_release.lib";"C:\Program Files\PCL\lib\pcl_kdtree_release.lib";"C:\Program Files\PCL\lib\pcl_keypoints_release.lib";"C:\Program Files\PCL\lib\pcl_ml_release.lib";"C:\Program Files\PCL\lib\pcl_octree_release.lib";"C:\Program Files\PCL\lib\pcl_outofcore_release.lib";"C:\Program Files\PCL\lib\pcl_people_release.lib";"C:\Program Files\PCL\lib\pcl_recognition_release.lib";"C:\Program Files\PCL\lib\pcl_registration_release.lib";"C:\Program Files\PCL\lib\pcl_sample_consensus_release.lib";"C:\Program Files\PCL\lib\pcl_search_release.lib";"C:\Program Files\PCL\lib\pcl_segmentation_release.lib";"C:\Program Files\PCL\lib\pcl_surface_release.lib";"C:\Program Files\PCL\lib\pcl_tracking_release.lib";"C:\Program Files\PCL\lib\pcl_visualization_release.lib";"C:\Program Files\Boost\lib\libboost_system-vc120-mt-gd-1_56.lib";"C:\Program Files\VTK\lib\vtkCommonCore-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonMath-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonDataModel-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonExecutionModel-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingLOD-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQt-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQtOpenGL-6.1.lib";"C:\Program Files\VTK\lib\vtkInteractionStyle-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersSources-6.1.lib";$(QTDIR)\lib\Qt5Widgetsd.lib;$(QTDIR)\lib\Qt5Guid.lib;$(QTDIR)\lib\Qt5Cored.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;$(QTDIR)\lib;$(QTDIR)\lib;"C:\Program Files\PCL\lib";"C:\Program Files\Boost\lib";"C:\Program Files\VTK\lib";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <OutputFile>$(OutDir)\manual_registration_win.exe</OutputFile>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\Program Files\PCL\include\pcl-1.8;..\..\Program Files\Boost\include\boost-1_56;..\..\DTIVision\3rdParty\Eigen\include;..\..\Program Files\flann\include;..\..\Program Files\VTK\include\vtk-6.1;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore;debug;.;..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013;.\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-Zm200 -w34100 -w34189 %(AdditionalOptions)</AdditionalOptions>
+      <AssemblerListingLocation>debug\</AssemblerListingLocation>
+      <BrowseInformation>false</BrowseInformation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_WINDOWS;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;UNICODE;UNICODE;WIN32;WIN32;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <WarningLevel>Level3</WarningLevel>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>glu32.lib;opengl32.lib;gdi32.lib;user32.lib;$(QTDIR)\lib\qtmaind.lib;$(QTDIR)\lib\Qt5Cored.lib;"C:\Program Files\PCL\lib\pcl_common_release.lib";"C:\Program Files\PCL\lib\pcl_features_release.lib";"C:\Program Files\PCL\lib\pcl_filters_release.lib";"C:\Program Files\PCL\lib\pcl_io_ply_release.lib";"C:\Program Files\PCL\lib\pcl_io_release.lib";"C:\Program Files\PCL\lib\pcl_kdtree_release.lib";"C:\Program Files\PCL\lib\pcl_keypoints_release.lib";"C:\Program Files\PCL\lib\pcl_ml_release.lib";"C:\Program Files\PCL\lib\pcl_octree_release.lib";"C:\Program Files\PCL\lib\pcl_outofcore_release.lib";"C:\Program Files\PCL\lib\pcl_people_release.lib";"C:\Program Files\PCL\lib\pcl_recognition_release.lib";"C:\Program Files\PCL\lib\pcl_registration_release.lib";"C:\Program Files\PCL\lib\pcl_sample_consensus_release.lib";"C:\Program Files\PCL\lib\pcl_search_release.lib";"C:\Program Files\PCL\lib\pcl_segmentation_release.lib";"C:\Program Files\PCL\lib\pcl_surface_release.lib";"C:\Program Files\PCL\lib\pcl_tracking_release.lib";"C:\Program Files\PCL\lib\pcl_visualization_release.lib";"C:\Program Files\Boost\lib\libboost_system-vc120-mt-gd-1_56.lib";"C:\Program Files\VTK\lib\vtkCommonCore-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonMath-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonDataModel-6.1.lib";"C:\Program Files\VTK\lib\vtkCommonExecutionModel-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingCore-6.1.lib";"C:\Program Files\VTK\lib\vtkRenderingLOD-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQt-6.1.lib";"C:\Program Files\VTK\lib\vtkGUISupportQtOpenGL-6.1.lib";"C:\Program Files\VTK\lib\vtkInteractionStyle-6.1.lib";"C:\Program Files\VTK\lib\vtkFiltersSources-6.1.lib";$(QTDIR)\lib\Qt5Widgetsd.lib;$(QTDIR)\lib\Qt5Guid.lib;$(QTDIR)\lib\Qt5Cored.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;$(QTDIR)\lib;$(QTDIR)\lib;"C:\Program Files\PCL\lib";"C:\Program Files\Boost\lib";"C:\Program Files\VTK\lib";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>"/MANIFESTDEPENDENCY:type=%27win32%27 name=%27Microsoft.Windows.Common-Controls%27 version=%276.0.0.0%27 publicKeyToken=%276595b64144ccf1df%27 language=%27*%27 processorArchitecture=%27*%27" %(AdditionalOptions)</AdditionalOptions>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <OutputFile>$(OutDir)\manual_registration_win.exe</OutputFile>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="GeneratedFiles\Debug\moc_manual_registration.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_manual_registration.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\manual_registration.cpp" />
+    <ClCompile Include="build\release\moc_manual_registration.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GeneratedFiles\ui_manual_registration.h" />
+    <CustomBuild Include="src\manual_registration.h">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DDBOOST_TT_HAS_OPERATOR_HPP_INCLUDED -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DNDEBUG "-I.\..\..\Program Files\PCL\include\pcl-1.8" "-I.\..\..\Program Files\Boost\include\boost-1_56" "-I.\..\..\DTIVision\3rdParty\Eigen\include" "-I.\..\..\Program Files\flann\include" "-I.\..\..\Program Files\VTK\include\vtk-6.1" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore" "-I.\release" "-I." "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DDBOOST_TT_HAS_OPERATOR_HPP_INCLUDED -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 "-I.\..\..\Program Files\PCL\include\pcl-1.8" "-I.\..\..\Program Files\Boost\include\boost-1_56" "-I.\..\..\DTIVision\3rdParty\Eigen\include" "-I.\..\..\Program Files\flann\include" "-I.\..\..\Program Files\VTK\include\vtk-6.1" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore" "-I.\release" "-I." "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing manual_registration.h...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing manual_registration.h...</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DDBOOST_TT_HAS_OPERATOR_HPP_INCLUDED -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB "-I.\..\..\Program Files\PCL\include\pcl-1.8" "-I.\..\..\Program Files\Boost\include\boost-1_56" "-I.\..\..\DTIVision\3rdParty\Eigen\include" "-I.\..\..\Program Files\flann\include" "-I.\..\..\Program Files\VTK\include\vtk-6.1" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore" "-I.\debug" "-I." "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DDBOOST_TT_HAS_OPERATOR_HPP_INCLUDED -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 "-I.\..\..\Program Files\PCL\include\pcl-1.8" "-I.\..\..\Program Files\Boost\include\boost-1_56" "-I.\..\..\DTIVision\3rdParty\Eigen\include" "-I.\..\..\Program Files\flann\include" "-I.\..\..\Program Files\VTK\include\vtk-6.1" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtWidgets" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtGui" "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\include\QtCore" "-I.\debug" "-I." "-I.\..\..\qt\qt5.3.1\5.3\msvc2013_64_opengl\mkspecs\win32-msvc2013"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing manual_registration.h...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing manual_registration.h...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+    </CustomBuild>
+    <ClInclude Include="build\ui_manual_registration.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="src\manual_registration.ui">
+      <FileType>Document</FileType>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Uic%27ing %(Identity)...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Uic%27ing %(Identity)...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Uic%27ing %(Identity)...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Uic%27ing %(Identity)...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties UicDir=".\GeneratedFiles" RccDir=".\GeneratedFiles" Qt5Version_x0020_x64="msvc2013_64_opengl" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>
