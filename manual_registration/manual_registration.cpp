@@ -6,6 +6,7 @@
 #include <QMessageBox>
 #include <QMutexLocker>
 #include <QObject>
+#include <QFileDialog>
 
 // VTK
 #include <vtkRenderWindow.h>
@@ -25,20 +26,25 @@
 #include <pcl/io/ply_io.h>
 #include <pcl/io/obj_io.h>
 #include <pcl/common/distances.h>
+#include <pcl/filters/voxel_grid.h>
 
 using namespace pcl;
 using namespace std;
 
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ManualRegistration::ManualRegistration () {
     // Initialize bogus
-    res_ = 0.001;
+    res_ = 0.01;
+    res_scene_ = 0.01;
     cloud_src_present_ = false;
     cloud_dst_present_ = false;
     src_point_selected_ = false;
     dst_point_selected_ = false;
     color_toggle_ = false;
     trfm_computed_ = true;
+    model_name_ = "";
+    scene_name_ = "";
     
     //Create a timer
     vis_timer_ = new QTimer (this);
@@ -53,46 +59,182 @@ ManualRegistration::ManualRegistration () {
 
     // Set up the source window
     vis_src_.reset (new pcl::visualization::PCLVisualizer ("", false));
-    ui_->qvtk_widget_src->SetRenderWindow (vis_src_->getRenderWindow ());
-    vis_src_->setupInteractor (ui_->qvtk_widget_src->GetInteractor (), ui_->qvtk_widget_src->GetRenderWindow ());
+   _src_widget.reset(new QVTKWidget());
+   _src_widget->SetRenderWindow(vis_src_->getRenderWindow());
+   _src_widget->setFocusPolicy(Qt::StrongFocus);
+    ui_->layout_src->addWidget(_src_widget.get());
+    vis_src_->setWindowBorders(false);
+    vis_src_->setupInteractor(_src_widget->GetInteractor(), _src_widget->GetRenderWindow());
     vis_src_->getInteractorStyle ()->setKeyboardModifier (pcl::visualization::INTERACTOR_KB_MOD_SHIFT);
-    ui_->qvtk_widget_src->update ();
+    vis_src_->addText("+/-					-> Increase/decrease point size", 30, 130);
+    vis_src_->addText("shift + left click	-> Select point", 30, 110);
+    vis_src_->addText("r					-> Reset camera view", 30, 90);
+    vis_src_->addText("f					-> Zoom to point", 30, 70);
+    vis_src_->addText("t					-> Toggle color", 30, 50);
+    vis_src_->addText("n					-> Toggle normals", 30, 30);
+    ui_->layout_src->update();
+      //  ui_->qvtk_widget_src->SetRenderWindow (vis_src_->getRenderWindow ());
+   // vis_src_->setupInteractor (ui_->qvtk_widget_src->GetInteractor (), ui_->qvtk_widget_src->GetRenderWindow ());
+  //  ui_->qvtk_widget_src->update ();
 
     vis_src_->registerPointPickingCallback (&ManualRegistration::SourcePointPickCallback, *this);
+    vis_src_->registerKeyboardCallback(&ManualRegistration::keyboardEventOccurred, *this, (void*)&vis_src_);
 
     // Set up the destination window
-    vis_dst_.reset (new pcl::visualization::PCLVisualizer ("", false));
-    ui_->qvtk_widget_dst->SetRenderWindow (vis_dst_->getRenderWindow ());
-    vis_dst_->setupInteractor (ui_->qvtk_widget_dst->GetInteractor (), ui_->qvtk_widget_dst->GetRenderWindow ());
+     vis_dst_.reset (new pcl::visualization::PCLVisualizer ("", false));
+     _dst_widget.reset(new QVTKWidget());
+     _dst_widget->SetRenderWindow(vis_dst_->getRenderWindow());
+     _dst_widget->setFocusPolicy(Qt::StrongFocus);
+     ui_->layout_dst->addWidget(_dst_widget.get());
+     vis_dst_->setWindowBorders(false);
+    vis_dst_->setupInteractor(_dst_widget->GetInteractor(), _dst_widget->GetRenderWindow());
+ //   ui_->qvtk_widget_dst->SetRenderWindow (vis_dst_->getRenderWindow ());
+ //   vis_dst_->setupInteractor (ui_->qvtk_widget_dst->GetInteractor (), ui_->qvtk_widget_dst->GetRenderWindow ());
     vis_dst_->getInteractorStyle ()->setKeyboardModifier (pcl::visualization::INTERACTOR_KB_MOD_SHIFT);
-    ui_->qvtk_widget_dst->update ();
+	vis_dst_->addText("+/-					-> Increase/decrease point size", 30, 130);
+	vis_dst_->addText("shift + left click	-> Select point", 30, 110);
+	vis_dst_->addText("r					-> Reset camera view", 30, 90);
+	vis_dst_->addText("f					-> Zoom to point", 30, 70);
+	vis_dst_->addText("t					-> Toggle color", 30, 50);
+	vis_dst_->addText("n					-> Toggle normals", 30, 30);
+  //  ui_->qvtk_widget_dst->update ();
 
     vis_dst_->registerPointPickingCallback (&ManualRegistration::DstPointPickCallback, *this);
-
+    vis_dst_->registerKeyboardCallback(&ManualRegistration::keyboardEventOccurred, *this, (void*)&vis_dst_);
 
     // Connect all buttons
-    //  connect (ui_->confirmSrcPointButton, SIGNAL(clicked()), this, SLOT(confirmSrcPointPressed()));
-    //  connect (ui_->confirmDstPointButton, SIGNAL(clicked()), this, SLOT(confirmDstPointPressed()));
     connect (ui_->calculateButton, SIGNAL(clicked()), this, SLOT(calculatePressed()));
     connect (ui_->clearButton, SIGNAL(clicked()), this, SLOT(clearPressed()));
     connect (ui_->btnApplyTrfm, SIGNAL(clicked()), this, SLOT(applyTrfmPressed()));
-    //  connect (ui_->orthoButton, SIGNAL(stateChanged(int)), this, SLOT(orthoChanged(int)));
-    //  connect (ui_->applyTransformButton, SIGNAL(clicked()), this, SLOT(applyTransformPressed()));
-    //  connect (ui_->refineButton, SIGNAL(clicked()), this, SLOT(refinePressed()));
-    //  connect (ui_->undoButton, SIGNAL(clicked()), this, SLOT(undoPressed()));
-    //  connect (ui_->safeButton, SIGNAL(clicked()), this, SLOT(safePressed()));
 
-    cloud_src_modified_ = true; // first iteration is always a new pointcloud
-    cloud_dst_modified_ = true;
+
+//    cloud_src_modified_ = true; // first iteration is always a new pointcloud
+//    cloud_dst_modified_ = true;
 
     src_pc_.reset(new Cloud);
     dst_pc_.reset(new Cloud);
+    
+}
+
+void ManualRegistration::on_btnModel_clicked(){
+
+	QString filters("PLY files(*.ply);;PCD files (*.pcd);; All files(*.*)");
+
+	//get a filename to open
+	QString fileName = QFileDialog::getOpenFileName(this,
+		tr("Open Model point cloud"),tr("/home"));//, filters);
+
+	ManualRegistration::CloudPtr cloud_src(new ManualRegistration::Cloud);
+	ManualRegistration::MeshPtr mesh_src_(new ManualRegistration::Mesh);
+
+	if (!fileName.isEmpty()){
+		int lastindex = fileName.toStdString().find_last_of(".");
+		QString modelname_ = fileName.split(".", QString::SkipEmptyParts).at(0);
+		int last = modelname_.toStdString().find_last_of("/");
+		model_name_ = QString::fromStdString(modelname_.toStdString().substr(last+1, fileName.toStdString().length()));
+
+		if (fileName.toStdString().substr(lastindex, fileName.toStdString().length()).compare(std::string(".pcd")) == 0){
+			if (pcl::io::loadPCDFile<ManualRegistration::PointT>(fileName.toStdString(), *cloud_src) == -1) {
+				QMessageBox::warning(this,
+					QString("Warning"),
+					QString("Could not read .pcd model from" + fileName));
+
+			}
+			this->setSrcCloud(cloud_src);
+		
+		}else{
+			std::cout << "Loading ply from -> " << fileName.toStdString() << std::endl;
+		//	pcl::PLYReader ply;
+			//if (ply.read<ManualRegistration::PointT>(fileName.toStdString(), *cloud_src) == -1){
+			if (pcl::io::loadPLYFile(fileName.toStdString(), *mesh_src_) == -1){
+				QMessageBox::warning(this,
+					QString("Warning"),
+					QString("Could not read .ply model from " + fileName));
+			}
+			pcl::fromPCLPointCloud2(mesh_src_->cloud, *cloud_src);
+			this->setSrcCloud(cloud_src);
+			
+			
+		}
+
+		ui_->textModelPath->setText(fileName);
+		double resolution_ = ComputeCloudResolution(cloud_src);
+
+		if (ui_->cbDownsample->isChecked()){
+			pcl::VoxelGrid<PointT> sor;
+			sor.setInputCloud(cloud_src);
+			sor.setLeafSize(resolution_ * 2, resolution_ * 2, resolution_ * 2);
+			sor.filter(*cloud_src);
+
+		}
+
+		
+		this->setResolution(resolution_);
+		this->cloud_src_present_ = true;
+		cloud_src_modified_ = true; // first iteration is always a new pointcloud
+	}
+}
+
+void ManualRegistration::on_btnScene_clicked(){
+
+	QString filters("PLY files(*.ply);;PCD files (*.pcd);;All files(*.*)");
+
+	//get a filename to open
+	QString fileName = QFileDialog::getOpenFileName(this,
+		tr("Open Scene point cloud"),QDir::currentPath(), filters);
+
+	ManualRegistration::CloudPtr cloud_dst(new ManualRegistration::Cloud);
+	ManualRegistration::MeshPtr mesh_dst_(new ManualRegistration::Mesh);
+
+	
+	if (!fileName.isEmpty()){
+		int lastindex = fileName.toStdString().find_last_of(".");
+		QString scenename_ = fileName.split(".", QString::SkipEmptyParts).at(0);
+		int last = scenename_.toStdString().find_last_of("/");
+		base_path_ = QString::fromStdString(scenename_.toStdString().substr(0, last));
+		scene_name_ = QString::fromStdString(scenename_.toStdString().substr(last+1, fileName.toStdString().length()));
+
+		if (fileName.toStdString().substr(lastindex, fileName.toStdString().length()).compare(std::string(".pcd")) == 0){
+			if (pcl::io::loadPCDFile<ManualRegistration::PointT>(fileName.toStdString(), *cloud_dst) == -1) {
+				QMessageBox::warning(this,
+					QString("Warning"),
+					QString("Could not read .pcd model from" + fileName));
+
+			}
+			this->setDstCloud(cloud_dst);	
+		}
+		else{
+			std::cout << "Loading ply from -> " << fileName.toStdString() << std::endl;
+			pcl::PLYReader ply;
+			if (pcl::io::loadPLYFile(fileName.toStdString(), *mesh_dst_) == -1){
+				QMessageBox::warning(this,
+					QString("Warning"),
+					QString("Could not read .ply model from " + fileName));
+			}
+			pcl::fromPCLPointCloud2(mesh_dst_->cloud, *cloud_dst);
+			this->setDstCloud(cloud_dst);
+			
+		}
+
+		this->res_scene_ = ComputeCloudResolution(cloud_dst);
+		if (ui_->cbDownsample->isChecked()){
+			pcl::VoxelGrid<PointT> sor;
+			sor.setInputCloud(cloud_dst);
+			sor.setLeafSize(res_scene_ * 5, res_scene_ * 5, res_scene_ * 5);
+			sor.filter(*cloud_dst);
+
+		}
+		
+		ui_->textScenePath->setText(fileName);
+		this->cloud_dst_present_ = true;
+		cloud_dst_modified_ = true; // first iteration is always a new pointcloud
+
+		
+	}
 }
 
 double ManualRegistration::ComputeCloudResolution(const ManualRegistration::CloudConstPtr &cloud){
  
- // PointCloud<PointXYZ>::Ptr xyz_source (new PointCloud<PointXYZ> ());
- // fromPCLPointCloud2 (*cloud, *xyz_source);
    PCL_INFO ("Computing cloud resolution ....\n");
   
    pcl::search::KdTree<PointT> s;
@@ -117,7 +259,6 @@ double ManualRegistration::ComputeCloudResolution(const ManualRegistration::Clou
     return res_src;
 }
 
-
 double ManualRegistration::estimateOcclusion(const ManualRegistration::CloudConstPtr &model, const ManualRegistration::CloudConstPtr &scene){
   
   ///Occlusion = 1 - visible object area / total object area
@@ -139,7 +280,7 @@ double ManualRegistration::estimateOcclusion(const ManualRegistration::CloudCons
 
       float dist = squaredEuclideanDistance (model->points[point_i], scene->points[point_nn_i]);
      
-      /// Save the point if the distance is below 5 * resolution 
+      /// Save the point if the distance is below 2 * resolution 
       if(dist < 2 * res_)
 	distances.push_back(dist);
     }
@@ -188,6 +329,13 @@ void ManualRegistration::SourcePointPickCallback (const pcl::visualization::Poin
     if (idx == -1)
         return;
 
+	if (!cloud_dst_){
+		QMessageBox::warning(this,
+			QString("Info"),
+			QString("Please load a model and a scene before starting the registration!"));
+		return;
+	}
+
     // Get the point that was picked
     event.getPoint (src_point_.x, src_point_.y, src_point_.z);
     PCL_INFO ("Src Window: Clicked point %d with X:%f Y:%f Z:%f\n", idx, src_point_.x, src_point_.y, src_point_.z);
@@ -219,14 +367,26 @@ void ManualRegistration::SourcePointPickCallback (const pcl::visualization::Poin
     else
     {
         PCL_INFO ("Please select a point in the source window first\n");
+		QMessageBox::warning(this,
+			QString("Info"),
+			QString("Please select a point in the source window first"));
     }
 }
 
 void ManualRegistration::DstPointPickCallback (const pcl::visualization::PointPickingEvent& event, void*) {
     // Check to see if we got a valid point. Early exit.
     int idx = event.getPointIndex ();
-    if (idx == -1)
-        return;
+	if (idx == -1){
+	
+		return;
+	}
+
+	if (!cloud_src_){
+		QMessageBox::warning(this,
+		QString("Info"),
+		QString("Please load a model and a scene before starting the registration!"));
+		return;
+	}
 
     // Get the point that was picked
     event.getPoint (dst_point_.x, dst_point_.y, dst_point_.z);
@@ -259,6 +419,10 @@ void ManualRegistration::DstPointPickCallback (const pcl::visualization::PointPi
     else
     {
         PCL_INFO ("Please select a point in the destination window first\n");
+		QMessageBox::warning(this,
+			QString("Info"),
+			QString("Please select a point in the destination window first"));
+
     }
 }
 
@@ -341,71 +505,6 @@ void ManualRegistration::calculatePressed() {
      float fine_res  = res_;
      float fitness_score = 0;
     if(ui_->refineBox->isChecked()) {
-      
-      
-     
-      pcl::GeneralizedIterativeClosestPoint6D gicp6d;
-      Cloud tmp;
-      
-      PCL_INFO("Refining pose using Color ICP with an inlier threshold of %f...\n", inlier_threshold_icp);  
-      gicp6d.setInputSource(cloud_src_ds);
-      gicp6d.setInputTarget(cloud_dst_ds);
-      gicp6d.setMaximumIterations(200);
-      gicp6d.setMaxCorrespondenceDistance(inlier_threshold_icp);
-      gicp6d.align(tmp, transform_);
-      
-       if(!gicp6d.hasConverged()) {
-            PCL_ERROR("Color-ICP failed!\n");
-            QMessageBox::warning(this,
-                    QString("Error"),
-                    QString("Color-ICP failed!"));
-            return;
-        }
-        
-        PCL_INFO("Rerunning fine Color-ICP with an inlier threshold of %f...\n", 0.5 * inlier_threshold_icp);
-        gicp6d.setMaximumIterations(100);
-        gicp6d.setMaxCorrespondenceDistance(0.5 * inlier_threshold_icp);
-        gicp6d.align(tmp, gicp6d.getFinalTransformation());
-
-        if(!gicp6d.hasConverged()) {
-            PCL_ERROR("Fine ICP failed!\n");
-            QMessageBox::warning(this,
-                    QString("Error"),
-                    QString("Fine Color-ICP failed!"));
-            return;
-        }
-        
-        PCL_INFO("Rerunning ultra-fine Color-ICP at full resolution with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
-        gicp6d.setInputSource(cloud_src_);
-        gicp6d.setInputTarget(cloud_dst_);
-        gicp6d.setMaximumIterations(50);
-        gicp6d.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
-        gicp6d.align(tmp, gicp6d.getFinalTransformation());
-
-        if(!gicp6d.hasConverged()) {
-            PCL_ERROR("Ultra-fine ICP failed!\n");
-            QMessageBox::warning(this,
-                    QString("Error"),
-                    QString("Ultra-fine Color-ICP failed!"));
-            return;
-        }
-  /*      
-        PCL_INFO("Rerunning ultra-ultra-fine Color-ICP at full resolution with an inlier threshold of %f...\n", 0.5*res_);
-        gicp6d.setInputSource(cloud_src_);
-        gicp6d.setInputTarget(cloud_dst_);
-        gicp6d.setMaximumIterations(25);
-        gicp6d.setMaxCorrespondenceDistance(0.5*res_);
-        gicp6d.align(tmp, gicp6d.getFinalTransformation());
-
-        if(!gicp6d.hasConverged()) {
-            PCL_ERROR("Ultra-Ultra-fine Color-ICP failed!\n");
-            QMessageBox::warning(this,
-                    QString("Error"),
-                    QString("Ultra-Ultra-fine ICP failed!"));
-            return;
-        }
-*/
-      /*
         pcl::IterativeClosestPoint<PointT,PointT> icp;
         Cloud tmp;
 
@@ -456,8 +555,8 @@ void ManualRegistration::calculatePressed() {
         }
         
         PCL_INFO("Rerunning ultra-ultra-fine ICP at full resolution with an inlier threshold of %f...\n", 0.5*res_);
-        icp.setInputSource(cloud_src_);
-        icp.setInputTarget(cloud_dst_);
+       // icp.setInputSource(cloud_src_);
+       // icp.setInputTarget(cloud_dst_);
         icp.setMaximumIterations(25);
         icp.setMaxCorrespondenceDistance(0.5*res_);
         icp.align(tmp, icp.getFinalTransformation());
@@ -474,8 +573,8 @@ void ManualRegistration::calculatePressed() {
 	{
 	fine_res = 0.1 *res_* i;   
 	PCL_INFO("Rerunning mega-fine ICP at full resolution with an inlier threshold of %f...\n", fine_res);
-	icp.setInputSource(cloud_src_);
-        icp.setInputTarget(cloud_dst_);
+	//icp.setInputSource(cloud_src_);
+       // icp.setInputTarget(cloud_dst_);
         icp.setMaximumIterations(25);
         icp.setMaxCorrespondenceDistance(fine_res);
         icp.align(tmp, icp.getFinalTransformation());
@@ -495,8 +594,8 @@ void ManualRegistration::calculatePressed() {
 	{
 	  
 	PCL_INFO("Rerunning mega-fine ICP at full resolution with an inlier threshold of %f...\n", fine_res);
-	icp.setInputSource(cloud_src_);
-        icp.setInputTarget(cloud_dst_);
+	//icp.setInputSource(cloud_src_);
+       // icp.setInputTarget(cloud_dst_);
         icp.setMaximumIterations(25);
         icp.setMaxCorrespondenceDistance(fine_res);
         icp.align(tmp, icp.getFinalTransformation());
@@ -515,34 +614,125 @@ void ManualRegistration::calculatePressed() {
         fitness_score = icp.getFitnessScore();
         PCL_INFO("ICP has converged with Fitness score = %f\n", icp.getFitnessScore());
         transform_ = icp.getFinalTransformation();
-	
-	*/
+
     }
     
     trfm_computed_ = true;
 
-    PCL_INFO("All done! The final refinement was done with an inlier threshold of %f, "
-            "and you can expect the resulting pose to be accurate within this bound.\n", fine_res);
-    
-    std::cout << "Transform: " << std::endl << transform_ << std::endl;
-    
-    std::ofstream file("trfm.txt");
+    //std::cout << "Transform: " << std::endl << transform_ << std::endl;
+
+	cloud_aligned_.reset(new Cloud);
+	pcl::transformPointCloud<PointT>(*cloud_src_, *cloud_aligned_, transform_);
+
+	float rms_ = computeRMSError(cloud_aligned_, cloud_dst_, "nn");
+	double occlusion_ = estimateOcclusion(cloud_aligned_, cloud_dst_);
+	double clutter_ = estimateClutter(cloud_aligned_, cloud_dst_);
+
+
+	PCL_INFO("All done! The final refinement was done with an inlier threshold of %f, "
+		"and you can expect the resulting pose to be accurate within this bound.\n", fine_res);
+	QMessageBox::warning(this,
+		QString("Info"),
+		QString("All done! The final refinement was done with an inlier threshold of " + QString::number(fine_res) + " and you can expect the resulting pose to be accurate within this bound.\n RMS_Error = "
+		        + QString::number(rms_) + "\n Occlusion = " + QString::number(occlusion_) + "\n Clutter = " + QString::number(clutter_)));
+
+	//Compute poses in the 11 sensor views
+	for (int i = 0; i < 10; i++)
+	{
+	  PCL_INFO("Aligning view nr: %d\n",i );
+		//Load transform 
+		QString path(base_path_ + "/trfm/stl_to_world_trfm_" + QString::number(i) + ".txt");
+		Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
+		mat = readMatrix(path);
+		Eigen::Matrix4f trfm = mat.inverse();
+
+		//Allocate clouds
+		CloudPtr local_cloud_aligned_(new Cloud);
+		CloudPtr scene_xx(new Cloud);
+		MeshPtr mesh_(new Mesh);
+
+		//Load scene
+		QString cloud_path(base_path_ + "/stl_" + QString::number(i) + ".ply");
+		
+		//Load clouds		
+		pcl::PLYReader ply;
+		if (pcl::io::loadPLYFile(cloud_path.toStdString(), *mesh_) == -1){
+			QMessageBox::warning(this,
+				QString("Warning"),
+				QString("Could not read .ply model from " + cloud_path));
+		}
+		
+		pcl::fromPCLPointCloud2(mesh_->cloud, *scene_xx);	
+		pcl::transformPointCloud<PointT>(*cloud_aligned_, *local_cloud_aligned_, trfm);
+
+		
+		pcl::IterativeClosestPoint<PointT, PointT> icp;
+
+		icp.setInputSource(local_cloud_aligned_);
+		icp.setInputTarget(scene_xx);
+		icp.setMaximumIterations(10);
+		//icp.setEuclideanFitnessEpsilon(1e9);
+		//icp.setTransformationEpsilon(1e9);
+		icp.setMaxCorrespondenceDistance(inlier_threshold_icp * 0.5);
+		icp.align(*local_cloud_aligned_);
+
+
+		if (!icp.hasConverged()) {
+			PCL_ERROR("ICP failed!\n");
+			QMessageBox::warning(this,
+				QString("Error"),
+				QString("ICP failed!"));
+		}
+		else{
+
+			Eigen::Matrix4f final_trfm = mat.inverse() * transform_;
+			Eigen::Matrix4f final_trfm_icp = icp.getFinalTransformation() * final_trfm;
+			CloudPtr temp(new Cloud);
+			pcl::transformPointCloud<PointT>(*cloud_src_, *temp, final_trfm_icp);
+			pcl::io::savePCDFile("local_cloud.pcd", *temp);
+			pcl::io::savePCDFile("local_cloud_aligned_.pcd", *local_cloud_aligned_);
+
+			pcl::io::savePCDFile("scene.pcd", *scene_xx);;
+
+			float rms_ = computeRMSError(local_cloud_aligned_, scene_xx, "nn");
+			double occlusion_ = estimateOcclusion(local_cloud_aligned_, scene_xx);
+			double clutter_ = estimateClutter(local_cloud_aligned_, scene_xx);
+
+			//Save ground truth pose
+			QString name(base_path_ + "/stl_" + QString::number(i) + "_" + model_name_ + "_pose.txt");
+			std::ofstream file(name.toStdString().c_str());
+			if (file.is_open()){
+				file << final_trfm << '\n';
+			//	file << icp.getFinalTransformation() << '\n';
+			//	file << icp.getFitnessScore() << '\n';
+				file << rms_ << '\n';
+				file << occlusion_ << '\n';
+				file << clutter_ << '\n';
+				file.close();
+			}
+		}
+		
+	}
+	
+	
+	QString name(base_path_ + "/" + scene_name_ + "_" + model_name_ + "_pose.txt");
+
+	QMessageBox::warning(this,
+		QString("Info"),
+		QString("Saving result to: " + name));
+
+    std::ofstream file(name.toStdString().c_str());
     if (file.is_open()){
-      std::cout << "saving trfm" << std::endl;
-    file << transform_ << '\n';
-    file << fitness_score << '\n';
-   // file << "m" << '\n' <<  colm(m) << '\n';
-   file.close();
+		file << transform_ << '\n';
+		file << fitness_score << '\n';
+		file << rms_ << '\n';
+		file << occlusion_ << '\n';
+		file << clutter_ << '\n';
+		//file << "m" << '\n' <<  colm(m) << '\n';
+		file.close();
   }
     
     std::cout << "The transform can be used to place the source (leftmost) point cloud into the target, and thus places observations (points, poses) relative to the source camera in the target camera (rightmost). If you need the other way around, use the inverse:" << std::endl << transform_.inverse() << std::endl;
-
-    cloud_aligned_.reset(new Cloud);
-    pcl::transformPointCloud<PointT>(*cloud_src_, *cloud_aligned_, transform_);
-    
-       computeRMSError(cloud_aligned_, cloud_dst_, "nn");
-       estimateOcclusion(cloud_aligned_, cloud_dst_);
-       estimateClutter(cloud_aligned_, cloud_dst_);
        
 
    // pcl::visualization::PCLVisualizer vpose("Pose visualization. Red: scene. Green: aligned object");
@@ -561,32 +751,57 @@ void ManualRegistration::calculatePressed() {
     vpose->spin();
 }
 
-void ManualRegistration::keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event,
-                        void* viewer_void){
+void ManualRegistration::keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event, void* viewer_void){
   
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = *static_cast<boost::shared_ptr<pcl::visualization::PCLVisualizer> *> (viewer_void);
+  if (event.getKeySym() == "q" && event.keyDown()){
+	  viewer->close();
+	  return;
+  }
+
   if (event.getKeySym () == "t" && event.keyDown ()){
      color_toggle_ = !color_toggle_;
     
-     viewer->removeAllPointClouds();
+
      //   if(!viewer->updatePointCloud(cloud_dst_, "scene")){
 	  std::vector<PCLPointField> point_fields;
-	  if((pcl::getFieldIndex<PointT>(*cloud_dst_, "rgb", point_fields) > 0
-	      || pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) > 0) && color_toggle_){
-            viewer->addPointCloud(cloud_dst_,
-                    pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_dst_),
-                    "scene");
-	  }else{
-	    viewer->addPointCloud (cloud_dst_,
-                    pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_dst_, 255, 0, 0),
-                    "scene");
+	  // toggle colors for cloud_dst_
+	  if (!cloud_dst_->empty() && cloud_dst_present_){
+		  viewer->removeAllPointClouds();
+		  cloud_dst_present_ = false;
+		  if ((pcl::getFieldIndex<PointT>(*cloud_dst_, "rgb", point_fields) > 0
+			  || pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) > 0) && color_toggle_){
+			  viewer->addPointCloud(cloud_dst_,
+				  pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_dst_),
+				  "cloud_dst_");
+		  }
+		  else{
+			  viewer->addPointCloud(cloud_dst_,
+				  pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_dst_, 255, 0, 0),
+				  "cloud_dst_");
+		  }
+		  cloud_dst_present_ = true;
 	  }
-       // }
-        
-  //       if(!viewer->updatePointCloud(cloud_aligned_, "aligned_object")){
-	//  std::vector<PCLPointField> point_fields;
-	  if((pcl::getFieldIndex<PointT>(*cloud_aligned_, "rgb", point_fields) > 0 
-	    || pcl::getFieldIndex<PointT>(*cloud_aligned_, "rgba", point_fields) > 0) && color_toggle_){
+	  // toggle colors for cloud_src_
+	  if (!cloud_src_->empty() && cloud_src_present_){
+//		  viewer->removeAllPointClouds();
+		/*  if ((pcl::getFieldIndex<PointT>(*cloud_src_, "rgb", point_fields) > 0
+			  || pcl::getFieldIndex<PointT>(*cloud_src_, "rgba", point_fields) > 0) && color_toggle_){
+			  viewer->addPointCloud(cloud_src_,
+				  pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_src_),
+				  "model");
+		  }
+		  else{
+			  viewer->addPointCloud(cloud_src_,
+				  pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_src_, 0, 255, 0),
+				  "model");
+		  }
+		  */
+	 // }
+	 
+	  // toggle colors for cloud_src_
+/*	  if((pcl::getFieldIndex<PointT>(*cloud_aligned_, "rgb", point_fields) > 0 
+	    || pcl::getFieldIndex<PointT>(*cloud_aligned_, "rgba", point_fields) > 0) && color_toggle_ && !cloud_aligned_->empty()){
             viewer->addPointCloud (cloud_aligned_,
                     pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_aligned_),
                     "aligned_object");
@@ -595,13 +810,14 @@ void ManualRegistration::keyboardEventOccurred (const pcl::visualization::Keyboa
                     pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_aligned_, 0, 255, 0),
                     "aligned_object");
 	  }
+	  */
        // }
  
     }
  //   viewer->update
  //   ui_->qvtk_widget_src->update();
  //   ui_->qvtk_widget_dst->update();
- // }
+  }
 }
 
 void ManualRegistration::clearPressed() {
@@ -615,6 +831,22 @@ void ManualRegistration::clearPressed() {
 //    vis_dst_->removePointCloud("dst_pc");
     vis_src_->removeAllShapes();
     vis_dst_->removeAllShapes();
+
+	//Re-draw text in dst window
+	vis_dst_->addText("+/-					-> Increase/decrease point size", 30, 130);
+	vis_dst_->addText("shift + left click	-> Select point", 30, 110);
+	vis_dst_->addText("r					-> Reset camera view", 30, 90);
+	vis_dst_->addText("f					-> Zoom to point", 30, 70);
+	vis_dst_->addText("t					-> Toggle color", 30, 50);
+	vis_dst_->addText("n					-> Toggle normals", 30, 30);
+
+	//Re-draw text in src window
+	vis_src_->addText("+/-					-> Increase/decrease point size", 30, 130);
+	vis_src_->addText("shift + left click	-> Select point", 30, 110);
+	vis_src_->addText("r					-> Reset camera view", 30, 90);
+	vis_src_->addText("f					-> Zoom to point", 30, 70);
+	vis_src_->addText("t					-> Toggle color", 30, 50);
+	vis_src_->addText("n					-> Toggle normals", 30, 30);
 }
 
 void ManualRegistration::applyTrfmPressed() {
@@ -634,60 +866,62 @@ void ManualRegistration::timeoutSlot () {
     {
         if(!vis_src_->updatePointCloud(cloud_src_, "cloud_src_"))
         {
-	  std::vector<PCLPointField> point_fields;
-	  if(pcl::getFieldIndex<PointT>(*cloud_src_, "rgb", point_fields) > 0 
-	    || pcl::getFieldIndex<PointT>(*cloud_src_, "rgba", point_fields) > 0 ){
-	    std::cout << "rgb" << std::endl;
-           vis_src_->addPointCloud (cloud_src_,
+			std::vector<PCLPointField> point_fields;
+			if(pcl::getFieldIndex<PointT>(*cloud_src_, "rgb", point_fields) > 0 
+				|| pcl::getFieldIndex<PointT>(*cloud_src_, "rgba", point_fields) > 0 ){
+				vis_src_->addPointCloud (cloud_src_,
                     pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_src_),
                     "cloud_src_");
-	 
-	  }/*else if(pcl::getFieldIndex<PointT>(*cloud_src_, "rgba", point_fields) > 0 ){
-	     std::cout << "rgba" << std::endl;
-	     vis_src_->addPointCloud (cloud_src_,
-                    pcl::visualization::PointCloudColorHandlerRGBAField<PointT>(cloud_src_),
-                    "cloud_src_");
-	  }*/else{   
-	     std::cout << "no color" << std::endl;
-	       vis_src_->addPointCloud (cloud_src_,
+			}else{   
+				vis_src_->addPointCloud (cloud_src_,
                     pcl::visualization::PointCloudColorHandlerGenericField<PointT>(cloud_src_, "z"),
                     "cloud_src_");
-	  }
-            vis_src_->resetCameraViewpoint("cloud_src_");
+			}
+			
+
+        vis_src_->resetCameraViewpoint("cloud_src_");
+		vis_src_->resetCamera();
+		vis_src_->removeAllCoordinateSystems();
+		vis_src_->addCoordinateSystem(100);
+		
         }
         cloud_src_modified_ = false;
     }
+
     if(cloud_dst_present_ && cloud_dst_modified_)
     {
         if(!vis_dst_->updatePointCloud(cloud_dst_, "cloud_dst_"))
         {
-	    std::vector<PCLPointField> point_fields;
-	  std::cout << "Index rgba" << pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) << std::endl;
-	    std::cout << "Index rgb" << pcl::getFieldIndex<PointT>(*cloud_dst_, "rgb", point_fields) << std::endl;
+			std::vector<PCLPointField> point_fields;
+		//	std::cout << "Index rgba" << pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) << std::endl;
+		//	std::cout << "Index rgb" << pcl::getFieldIndex<PointT>(*cloud_dst_, "rgb", point_fields) << std::endl;
 	 
-	   if(pcl::getFieldIndex<PointT>(*cloud_dst_, "rgb", point_fields) > 0
-	     || pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) > 0){
-	      vis_dst_->addPointCloud (cloud_dst_,
-                    pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_dst_),
-                    "cloud_dst_");
-	   }/*else if(pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) > 0){
-	     vis_dst_->addPointCloud (cloud_dst_,
-                    pcl::visualization::PointCloudColorHandlerRGBAField<PointT>(cloud_dst_),
-                    "cloud_dst_");
-	   }*/else{
-	      vis_dst_->addPointCloud (cloud_dst_,
-                    pcl::visualization::PointCloudColorHandlerGenericField<PointT>(cloud_dst_, "z"),
-                    "cloud_dst_");
-	   }
-            vis_dst_->resetCameraViewpoint("cloud_dst_");
+			if(pcl::getFieldIndex<PointT>(*cloud_dst_, "rgb", point_fields) > 0
+				|| pcl::getFieldIndex<PointT>(*cloud_dst_, "rgba", point_fields) > 0){
+					vis_dst_->addPointCloud (cloud_dst_,
+						pcl::visualization::PointCloudColorHandlerRGBField<PointT>(cloud_dst_),
+						"cloud_dst_");
+			}else{
+					vis_dst_->addPointCloud (cloud_dst_,
+						pcl::visualization::PointCloudColorHandlerGenericField<PointT>(cloud_dst_, "z"),
+						"cloud_dst_");
+			}
+		
+         vis_dst_->resetCameraViewpoint("cloud_dst_");
+		 vis_dst_->resetCamera();
+		 vis_dst_->removeAllCoordinateSystems();
+		 vis_dst_->addCoordinateSystem(100);
+
         }
         cloud_dst_modified_ = false;
     }
-    ui_->qvtk_widget_src->update();
-    ui_->qvtk_widget_dst->update();
+    ui_->layout_src->update();
+    ui_->layout_dst->update();
+    //ui_->qvtk_widget_src->update();
+    //ui_->qvtk_widget_dst->update();
 }
 
-void ManualRegistration::computeRMSError(const ManualRegistration::CloudConstPtr &cloud_source, const ManualRegistration::CloudConstPtr &cloud_target,std::string correspondence_type){
+float ManualRegistration::computeRMSError(const ManualRegistration::CloudConstPtr &cloud_source, const ManualRegistration::CloudConstPtr &cloud_target,std::string correspondence_type){
   // Estimate
   pcl::console::TicToc tt;
   tt.tic ();
@@ -717,7 +951,7 @@ void ManualRegistration::computeRMSError(const ManualRegistration::CloudConstPtr
 
       float dist = squaredEuclideanDistance (cloud_source->points[point_i], cloud_target->points[point_nn_i]);
      // std::cout << "dist: " << dist << std::endl; 
-      if(dist > 5* res_) dist = 0.0f;
+      if(dist > 2* res_) dist = 0.0f;
       rmse += dist;
       distances.push_back(dist);
     }
@@ -768,7 +1002,7 @@ void ManualRegistration::computeRMSError(const ManualRegistration::CloudConstPtr
   else
   {
     pcl::console::print_error ("Unrecognized correspondence type. Check legal arguments by using the -h option\n");
-    return;
+    return -1;
   }
 
   pcl::console::print_info ("[done, "); pcl::console::print_value ("%g", tt.toc ()); pcl::console::print_info (" seconds]\n");
@@ -776,6 +1010,8 @@ void ManualRegistration::computeRMSError(const ManualRegistration::CloudConstPtr
   pcl::console::print_highlight ("Median Error: %e (%f mm)\n", median_error, median_error); //*1000
   pcl::console::print_highlight ("Mean Error: %e (%f mm)\n", mean_error, mean_error); //*1000
   pcl::console::print_highlight ("Std_dev: %e (%f mm)\n", std_dev, std_dev); //*1000
+
+  return rmse;
 }
 
 float ManualRegistration::mean(std::vector<float> &v){
@@ -824,112 +1060,55 @@ float ManualRegistration::median(std::vector<float> &v){
   }
 }
 
+Eigen::Matrix4f ManualRegistration::readMatrix(QString filename){
+	using namespace std;
+	int cols = 0, rows = 0;
+	double buff[1000];
+
+	// Read numbers from file into buffer.
+	ifstream infile;
+	infile.open(filename.toStdString().c_str());
+	if (!infile.is_open()){
+		QMessageBox::warning(this,QString("Info"),QString("Could not open file: " + filename));	
+	}
+
+	while (!infile.eof())
+	{
+		string line;
+		getline(infile, line);
+		//QMessageBox::warning(this, QString("Info"), QString(QString::fromStdString(line)));
+		int temp_cols = 0;
+		stringstream stream(line);
+		while (!stream.eof())
+			stream >> buff[cols*rows + temp_cols++];
+
+		if (temp_cols == 0)
+			continue;
+
+		if (cols == 0)
+			cols = temp_cols;
+
+		rows++;
+	}	
+
+	infile.close();
+
+	//rows--;
+
+	// Populate matrix with numbers.
+	Eigen::Matrix4f result(rows, cols);
+	for (int i = 0; i < rows; i++)
+	for (int j = 0; j < cols; j++)
+		result(i, j) = buff[cols*i + j];
+
+	return result;
+	
+}
+
 int main (int argc, char** argv) {
     QApplication app(argc, argv);
 
-    ManualRegistration::CloudPtr cloud_src (new ManualRegistration::Cloud);
-    ManualRegistration::CloudPtr cloud_dst (new ManualRegistration::Cloud);
-
-    if(argc < 3) {
-        PCL_ERROR ("Usage:\n\t%s <source_cloud.pcd> <target_cloud.pcd>\n", argv[0]);
-        return 0;
-    }
-
-     std::cout << "Loading source cloud..." << std::endl; 
-    // TODO do this with PCL console
- 
-    int lastindex = std::string(argv[1]).find_last_of(".");
-    if(std::string(argv[1]).substr(lastindex,std::string(argv[1]).length()).compare(std::string(".pcd")) == 0){
-      if (pcl::io::loadPCDFile<ManualRegistration::PointT> (argv[1], *cloud_src) == -1) {
-	  PCL_ERROR ("Couldn't read PCD file %s \n", argv[1]);
-	  return (-1);
-      }
-     }else{
-       std::cout << "Loading ply ..." << std::endl;
-       pcl::PLYReader ply;
-       if(ply.read<ManualRegistration::PointT> (argv[1], *cloud_src) == -1){ 
-	  PCL_ERROR ("Couldn't read PLY file %s \n", argv[1]);
-	  return (-1);
-      }
-     }
-     
-    std::cout << "Finish..." << std::endl;
-    std::cout << "Loading target cloud..." << std::endl; 
-    lastindex = std::string(argv[2]).find_last_of(".");
-    if(std::string(argv[2]).substr(lastindex,std::string(argv[2]).length()).compare(std::string(".pcd")) == 0){
-    if (pcl::io::loadPCDFile<ManualRegistration::PointT> (argv[2], *cloud_dst) == -1) {
-        PCL_ERROR ("Couldn't read PCD file %s \n", argv[2]);
-        return (-1);
-    }
-    }else if(std::string(argv[2]).substr(lastindex,std::string(argv[2]).length()).compare(std::string(".ply")) == 0){
-       std::cout << "Loading ply ..." << std::endl;
-      pcl::PLYReader ply;
-      if(ply.read<ManualRegistration::PointT>(argv[2], *cloud_dst) == -1){ 
-	PCL_ERROR ("Couldn't read PLY file %s \n", argv[1]);
-	return (-1);
-      }
-    }else{
-      std::cout << "Loading obj ..." << std::endl;
-  /*    pcl:: ply;
-      if(ply.read<ManualRegistration::PointT>(argv[2], *cloud_dst) == -1){ 
-	PCL_ERROR ("Couldn't read PLY file %s \n", argv[1]);
-	return (-1);
-      }
-      */
-    }
-    
-     std::cout << "Finish..." << std::endl; 
-     
-    // Remove NaNs
-    std::vector<int> dummy;
-    pcl::removeNaNFromPointCloud(*cloud_src, *cloud_src, dummy);
-    pcl::removeNaNFromPointCloud(*cloud_dst, *cloud_dst, dummy);
- /*   
-    pcl::search::KdTree<ManualRegistration::PointT> s;
-    const int k = 5;
-    std::vector<std::vector<int> > idx;
-    std::vector<std::vector<float> > distsq;
-
-     std::cout << "Computing source resolution..." << std::endl; 
-     
-    s.setInputCloud(cloud_src);
-    s.nearestKSearch(*cloud_src, std::vector<int>(), 5, idx, distsq);
-    double res_src = 0.0f;
-    for(size_t i = 0; i < cloud_src->size(); ++i) {
-        double resi = 0.0f;
-        for(int j = 1; j < k; ++j)
-            resi += sqrtf(distsq[i][j]);
-        resi /= double(k - 1);
-        res_src += resi;
-    }
-    res_src /= double(cloud_src->size());
-    
-    std::cout << "Finish..." << std::endl; 
-    std::cout << "Computing target resolution..." << std::endl; 
-    
-    s.setInputCloud(cloud_dst);
-    s.nearestKSearch(*cloud_dst, std::vector<int>(), 5, idx, distsq);
-    double res_dst = 0.0f;
-//    #pragma omp parallel for
-    for(size_t i = 0; i < cloud_dst->size(); ++i) {
-        double resi = 0.0f;
-        for(int j = 1; j < k; ++j)
-            resi += sqrtf(distsq[i][j]);
-        resi /= double(k - 1);
-        res_dst += resi;
-    }
-    res_dst /= double(cloud_dst->size());
-     std::cout << "Finish..." << std::endl; 
-   */ 
     ManualRegistration man_reg;
-    
-    double resolution_ = man_reg.ComputeCloudResolution(cloud_src);
-
-    man_reg.setSrcCloud(cloud_src);
-    man_reg.setResolution(resolution_);
-    //man_reg.setResolution(std::max<double>(res_src, res_dst));
-    man_reg.setDstCloud(cloud_dst);
-
     man_reg.show();
 
     return (app.exec());

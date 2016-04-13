@@ -41,6 +41,8 @@
 #include <QMutex>
 #include <QTimer>
 
+#include <QVTKWidget.h>
+
 // Boost
 #include <boost/thread/thread.hpp>
 
@@ -83,6 +85,9 @@ class ManualRegistration : public QMainWindow {
         typedef pcl::PointCloud<PointT> Cloud;
         typedef Cloud::Ptr CloudPtr;
         typedef Cloud::ConstPtr CloudConstPtr;
+		typedef pcl::PolygonMesh Mesh;
+		typedef pcl::PolygonMesh::Ptr MeshPtr;
+
 
         ManualRegistration ();
 
@@ -109,13 +114,13 @@ class ManualRegistration : public QMainWindow {
 	double ComputeCloudResolution(const ManualRegistration::CloudConstPtr &cloud);
 
     protected:
-      
+       
         float variance(std::vector<float> &v);
 	float stdDev(std::vector<float> &v);
 	float median(std::vector<float> &v);
 	float mean(std::vector<float> &v);
 	
-	void computeRMSError(const ManualRegistration::CloudConstPtr &cloud_source, 
+	float computeRMSError(const ManualRegistration::CloudConstPtr &cloud_source, 
 			     const ManualRegistration::CloudConstPtr &cloud_target,
 		             std::string correspondence_type);
 
@@ -133,8 +138,11 @@ class ManualRegistration : public QMainWindow {
 
         CloudPtr cloud_src_;
         CloudPtr cloud_dst_;
-	CloudPtr cloud_aligned_;;
+	CloudPtr cloud_aligned_;
+	MeshPtr mesh_src_;
+	MeshPtr mesh_dst_;
         double res_;
+	double res_scene_;
 
         QMutex mtx_;
         QMutex vis_mtx_;
@@ -145,11 +153,11 @@ class ManualRegistration : public QMainWindow {
         bool                              cloud_src_modified_;
         bool                              cloud_dst_present_;
         bool                              cloud_dst_modified_;
-	bool				   color_toggle_;
+		bool							  color_toggle_;
 
         bool                              src_point_selected_;
         bool                              dst_point_selected_;
-	bool			 	   trfm_computed_;
+		bool			 				  trfm_computed_;
 
         PointT                            src_point_;
         PointT                            dst_point_;
@@ -159,12 +167,29 @@ class ManualRegistration : public QMainWindow {
 
         Eigen::Matrix4f                   transform_;
 
+	QString							  model_name_;
+	QString							  scene_name_;
+	QString							  base_path_;
+	
+	boost::shared_ptr<QVTKWidget>			_src_widget;
+	boost::shared_ptr<QVTKWidget>			_dst_widget;
+
     public slots:
         void calculatePressed();
         void clearPressed();
-	void applyTrfmPressed(); 
+   	void applyTrfmPressed(); 
+	void on_btnModel_clicked();
+	void on_btnScene_clicked();
 
     private slots:
         void timeoutSlot();
 
+
+    private:
+		
+	Eigen::Matrix4f readMatrix(QString filename);
+
+
 };
+
+
