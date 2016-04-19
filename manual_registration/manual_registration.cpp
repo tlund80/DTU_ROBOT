@@ -637,7 +637,7 @@ void ManualRegistration::calculatePressed() {
 		        + QString::number(rms_) + "\n Occlusion = " + QString::number(occlusion_) + "\n Clutter = " + QString::number(clutter_)));
 
 	//Compute poses in the 11 sensor views
-	for (int i = 0; i < 10; i++)
+/*	for (int i = 0; i < 10; i++)
 	{
 	  PCL_INFO("Aligning view nr: %d\n",i );
 		//Load transform 
@@ -714,7 +714,7 @@ void ManualRegistration::calculatePressed() {
 		
 	}
 	
-	
+*/	
 	QString name(base_path_ + "/" + scene_name_ + "_" + model_name_ + "_pose.txt");
 
 	QMessageBox::warning(this,
