@@ -33,7 +33,9 @@ SOURCES +=  src/viewdata.cpp \
             #src/MacBethDetector.cpp \
             src/MacBethColorCalibrate.cpp \
     src/SMColorCalibrationParameters.cpp \
-    src/macros.cpp
+    src/macros.cpp \
+    src/simple_color_balance.cpp \
+    src/AlgorithmLineShift.cpp
 
 HEADERS += src/viewdata.h \
       #      src/stereo_match.h \
@@ -53,7 +55,9 @@ HEADERS += src/viewdata.h \
     src/dist.h \
     src/macros.h \
     src/traits.h \
-    src/ids.h
+    src/ids.h \
+    src/white_balance.hpp \
+    src/AlgorithmLineShift.h
 
 
 # Operating System dependant linking and including
@@ -81,9 +85,10 @@ unix:!macx {
             -lvtkzlib-6.3
 
     # PCL pkg-config workaround
+    INCLUDEPATH += /usr/local/include/pcl-1.8/ /usr/include/eigen3/
     LIBS += -lboost_system -lpcl_visualization -lpcl_common -lpcl_io -lpcl_search -lpcl_surface -lpcl_filters -lpcl_features
     # PKG-config libs
-    INCLUDEPATH += /usr/local/include/pcl-1.8 /usr/include/eigen3/
+
     PKGCONFIG += gl glu x11 /usr/local/lib/pkgconfig/opencv.pc eigen3
  #   PKGCONFIG += pcl_registration-1.8 pcl_visualization-1.8 pcl_surface-1.8 pcl_search-1.8 pcl_filters-1.8 pcl_kdtree-1.8 pcl_tracking-1.8
   #  QMAKE_CXXFLAGS += -fopenmp
