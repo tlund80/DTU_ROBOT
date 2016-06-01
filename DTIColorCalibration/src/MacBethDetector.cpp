@@ -1,5 +1,11 @@
 #include "MacBethDetector.h"
 
+#ifdef CV_VERSION < 3
+    namespace cv {
+        using std::vector;
+    }
+#endif
+
 static bool myfn(cv::RotatedRect i, cv::RotatedRect j) {
     return i.size.area()<j.size.area();
 }
