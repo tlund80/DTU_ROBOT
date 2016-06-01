@@ -1,11 +1,14 @@
 clear;close all;clc;
 
 % Output PDF dir
-figure_output_dir = '~/workspace/CARO-Publications/Publications/2015/XXX_Which3DFeatureShouldIUse/gfx'; % Comment to avoid
+%figure_output_dir = '~/workspace/CARO-Publications/Publications/2015/XXX_Which3DFeatureShouldIUse/gfx'; % Comment to avoid
+figure_output_dir = '~/DTU_ROBOT/feature_matching_benchmark/output/bologna2_figures/'; % Comment to avoid
 figure_output_file_estimation = 'timings_estimation.pdf';
 
 % Input dir
-data_dir = 'output/bologna1_timing';
+%data_dir = 'output/bologna1_timing';
+data_dir = 'output/bologna2';
+
 
 % Feature radius
 radius_mul = '15';
@@ -25,6 +28,8 @@ features = {
     'shot'
     'si'
     'usc'
+    'pfh'
+    '3dsc'
 };
 
 % Get colors/markers etc.

@@ -1,5 +1,6 @@
 // CoViS
 #include <covis/covis.h>
+#include <halcon/halconestimation.h>
 using namespace covis;
 
 // Boost
@@ -84,7 +85,17 @@ int main(int argc, const char** argv) {
     
     if(verbose)
         po.print();
-
+    
+    //Check if halcon dongle is avalible
+  /*  HTuple info;
+    try{
+       GetSystem("hostids", &info);
+    }catch (HOperatorException &e)
+    {
+        pcl::console::print_error("%s\n", e.ErrorText().Text());
+	return 0;
+    }
+*/
     // Get paths
     const std::vector<std::string> queries = po.getVector("query");
     const std::vector<std::string> targets = po.getVector("target");
@@ -312,6 +323,7 @@ int main(int argc, const char** argv) {
     
     // Each entry becomes a vector of length fnum
     std::vector<std::vector<MatrixT> > featq(queries.size());
+    //std::vector<HTuple> halcon_queries_models; 
     
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -324,9 +336,32 @@ int main(int argc, const char** argv) {
                 COVIS_MSG("\t" << boost::filesystem::path(queries[i]).stem().string());
         featq[i].resize(fnum);
         Eigen::VectorXf dummy(fnum);
+	// COVIS_MSG("\t" << "Compute features .......");
         features(meshq[i], surfq[i], query[i], frad, avgModelMeshRes,
                 featq[i],
                 dummy);
+	// COVIS_MSG("\t" << "Done!!");
+	
+/*	if(verbose)
+                COVIS_MSG_INFO("\t\t" << "--> halcon model ...");
+	//Create Halcon Surface Model for each queries
+	  //Create the object model from a point cloud
+	  perception::Create3DObjectModel cadModelCreator;
+	  HTuple halcon_model;
+	  HTuple x,y,z;
+
+	  CloudT::Ptr hc = query[i];
+	  for (size_t i = 0; i < hc->points.size(); ++i){
+	    x.Append(HTuple(hc->points[i].x));
+	    y.Append(HTuple(hc->points[i].y));
+	    z.Append(HTuple(hc->points[i].z));
+	}
+
+        cadModelCreator.createModelFromPoints(x,y,z);
+        cadModelCreator.computeSurfaceNormals();       
+        HTuple objectModel3D = cadModelCreator.get3DObjectModel();
+	halcon_queries_models.push_back(objectModel3D);
+	*/
     }
     
     /**
@@ -390,8 +425,9 @@ int main(int argc, const char** argv) {
     const std::vector<std::string>& fnamesDetection = (fusion ? fnamesFusion : fnames);
     
     // For each feature there is a matrix with detection/timing information, one row per scene
-    MatrixT detectionOutputs[fnumDetection];
-    MatrixT detectionTimings[fnumDetection];
+    MatrixT detectionOutputs[fnumDetection]; //+1 to add halcon
+    MatrixT detectionTimings[fnumDetection]; //+1 to add halcon
+
     
     for(size_t i = 0; i < targets.size(); ++i) {
         const boost::filesystem::path tpath(targets[i]);
@@ -403,9 +439,11 @@ int main(int argc, const char** argv) {
         
         CloudT::Ptr surft(new CloudT);
         pcl::PolygonMesh::Ptr mesht(new pcl::PolygonMesh);
+	COVIS_MSG_INFO("LOADING SCENE " << targets[i]);
         pcl::io::loadPLYFile(targets[i], *mesht);
         pcl::fromPCLPointCloud2(mesht->cloud, *surft);
         COVIS_ASSERT_MSG(!mesht->polygons.empty() && !surft->empty(), "Empty scene polygon or vertex set!");
+
         
         // Normalize the normals
         size_t invalidNormals = 0;
@@ -460,10 +498,12 @@ int main(int argc, const char** argv) {
             const std::string poseFile = (poseFileModelFirst ?
                     poseDir + "/" + pobj + poseSeparator + pscn + "." + poseSuffix : 
                     poseDir + "/" + pscn + poseSeparator + pobj + "." + poseSuffix);
+	      COVIS_MSG_INFO("Loading: " <<  poseFile);
             
             // Load pose
             try {
                 core::read(poseFile, queryPoses[j]);
+		std::cout << queryPoses[j] << std::endl;
             } catch(const std::exception& e) {
                 COVIS_MSG_WARN("Object \"" << pobj << "\" is not found in scene \"" << pscn << "\"!");
                 queryMask[j] = false;
@@ -472,9 +512,13 @@ int main(int argc, const char** argv) {
             
             // Transform object
             CloudT::Ptr queryTransformed(new CloudT);
-            pcl::transformPointCloud<PointT>(*query[j], *queryTransformed, queryPoses[j]);
+	    Eigen::Matrix4f gt_pose = queryPoses[j];//.inverse();
+	    std::cout << gt_pose << std::endl;
+            pcl::transformPointCloud<PointT>(*query[j], *queryTransformed, gt_pose);
             
-            // TODO: Check that the pose is actually valid
+	//    show(mesht,queryTransformed);
+           
+	    // TODO: Check that the pose is actually valid
             core::Correspondence::VecPtr pointCorr = surftSearch.knn(queryTransformed, 1);
             size_t numInliers = 0;
             for(core::Correspondence::Vec::const_iterator it = pointCorr->begin(); it != pointCorr->end(); ++it)
@@ -504,6 +548,7 @@ int main(int argc, const char** argv) {
         // Select seed points on the scene surface
         float seedTiming;
         CloudT::Ptr target(new CloudT);
+	//HTuple halcon_target;
         TIME(\
                 seed(surft, fres, target);,
                 seedTiming
@@ -512,7 +557,7 @@ int main(int argc, const char** argv) {
         if(verbose)
             COVIS_MSG("\tSeed computation time: " << seedTiming << " s");
         
-//        show(mesht, target);
+       // show(mesht, target);
         
         /**
          * Compute scene features
@@ -530,7 +575,24 @@ int main(int argc, const char** argv) {
             for(size_t j = 0; j < fnum; ++j)
                 COVIS_MSG("\t" << fnames[j] << ": " << featureTiming(j) << " s");
         }
-        
+      
+	
+	/*	HTuple x,y,z;
+		for (size_t i = 0; i < target->points.size (); ++i){
+		  x.Append(HTuple(target->points[i].x));
+		  y.Append(HTuple(target->points[i].y));
+		  z.Append(HTuple(target->points[i].z));
+		}
+
+	       //Creating Model of the scene!!
+	       perception::Create3DObjectModel SearchModelCreator;
+	       SearchModelCreator.createModelFromPoints(x,y,z);
+	       SearchModelCreator.computeSurfaceNormals();
+	       halcon_target = SearchModelCreator.get3DObjectModel();
+	       
+	if(verbose)
+            COVIS_MSG("\tHalcon: 0" << "s");
+*/
         /**
          * Compute PCA subspaces for the target features
          */
@@ -589,6 +651,7 @@ int main(int argc, const char** argv) {
         Eigen::VectorXf refinementTiming = Eigen::VectorXf::Zero(fnumDetection);
         Eigen::VectorXf segmentationTiming = Eigen::VectorXf::Zero(fnumDetection);
         
+	size_t J = 0;
         // Loop over number of features
         for(size_t j = 0; j < fnumDetection; ++j) {
             // Create a timer for this feature to measure the total detection time of all objects in current scene
@@ -621,7 +684,7 @@ int main(int argc, const char** argv) {
             
             // For evaluating poses
             detect::FitEvaluation<PointT>::Ptr eval(new detect::FitEvaluation<PointT>(target));
-            eval->setOcclusionRemoval(true);
+            eval->setOcclusionReasoning(true); //setOcclusionRemoval(true);
             
             // For doing segmentation
             detect::PointSearch<PointT> targetSearch;
@@ -649,7 +712,7 @@ int main(int argc, const char** argv) {
                         COVIS_MSG_WARN("No correspondences for object " << queryName << " - not found!");
                     continue;
                 }
-                
+		               
                 // Initialize RANSAC
                 detect::Ransac<PointT> ransac;
                 ransac.setSource(query[kidx]);
@@ -670,7 +733,7 @@ int main(int argc, const char** argv) {
 
                 // Perform refinement
                 core::Detection d = ransac.estimate();
-                
+		
                 // Increment total detection time for current feature
                 detectionTiming[j] += t->seconds();
                 
@@ -785,13 +848,15 @@ int main(int argc, const char** argv) {
                     }
                 }
             } // End loop over objects for detection (k)
+          
             
             // Store timings for scene: [decimation seeds features projection matching fusion detection refinement segmentation]
             const int rowidx = detectionTimings[j].rows();
             detectionTimings[j].conservativeResize(rowidx + 1, 9);
             detectionTimings[j](rowidx, 0) = decimationTiming;
             detectionTimings[j](rowidx, 1) = seedTiming;
-            if(fusion) {
+     
+	    if(fusion) {
 #define MAX3(a,b,c) (a > b ? a : (a > c ? a : c)) // Max of 3 values
 #define MAX3V(v,idx1,idx2,idx3) MAX3(v[idx1], v[idx2], v[idx3]) // Max of three indexed elements in v
                 const size_t idx1 = fusionCombinations[j].get<0>();
@@ -805,6 +870,7 @@ int main(int argc, const char** argv) {
                 detectionTimings[j](rowidx, 3) = projectionTiming[j];
                 detectionTimings[j](rowidx, 4) = matchTiming[j];
             }
+            
             detectionTimings[j](rowidx, 5) = fusionTiming[j];
             detectionTimings[j](rowidx, 6) = detectionTiming[j];
             detectionTimings[j](rowidx, 7) = refinementTiming[j];
@@ -832,9 +898,211 @@ int main(int argc, const char** argv) {
                         COVIS_MSG_INFO(detections.size() << " detections for feature " << fnamesDetection[j]);
                 }
             }
+            J = j;
         } // End loop over feature types to use for detection (j)
-        
+      
+      
+      /*
+       *  Halcon Recognition
+       */
+      
+       // For doing segmentation
+        detect::PointSearch<PointT> targetSearch;
+        targetSearch.setTarget(target);
+	    
+        // Scene detections
+        core::Detection::Vec halcon_detections;
+        std::vector<bool> targetMask(target->size(), true); // Will be filled with false for each segmented point
+                
+       // Create a timer for this feature to measure the total detection time of all objects in current scene
+       core::ScopedTimer::Ptr t(new core::ScopedTimer("Object detection+refinement+segmentation, halcon"));
+       
+/*        for(size_t k = 0; k < queries.size(); ++k) {
+              // Current object index
+              const size_t kidx = k;
+              const std::string queryName = fs::path(queries[kidx]).stem().string();
+              core::Detection d_halcon;
+	      
+	      //Detect Halcon
+	      //Halcon parameters
+	      SurfaceModelCreationParameters smcParams;
+	      SurfaceModelDetectionParameters detectParams;
+	      
+	      //Create the surface model using the objectModel
+	      smcParams.ObjectModel3D = halcon_queries_models[k];
+   
+	      perception::SurfaceModelCreator smc;
+	      smc.setParameters(smcParams);
+	      smc.createModel();
+	      
+	      HTuple pose, score;
+	      perception::SurfaceModelDetector detector;
+	      detectParams.num_matches = 10;
+	      detectParams.MinScore = 0.2;
+	      detector.setParameters(detectParams);
+	      detector.setSurfaceModel(smc.getSurfaceModel());
+ 
+	      pcl::console::print_info("Detecting 3D model -> %s!\n", queryName.c_str());
+	      int instances = detector.detectModel(halcon_target);
+	      Eigen::Matrix4f t = Eigen::Matrix4f::Identity();
+	      if(instances > 0){
+		  pcl::console::print_info("Found %d instances of the model in the scene!\n", instances);
+
+		  if(detector.getBestMatch(pose, score) == 1){
+		    HTuple HomMat;
+		    PoseToHomMat3d(pose,&HomMat);
+
+
+		    
+		    t(0,0) = (double)HomMat[0]; t(0,1) = (double)HomMat[1]; t(0,2) = (double)HomMat[2]; t(0,3) = (double)HomMat[3];
+		    t(1,0) = (double)HomMat[4]; t(1,1) = (double)HomMat[5]; t(1,2) = (double)HomMat[6]; t(1,3) = (double)HomMat[7];
+		    t(2,0) = (double)HomMat[8]; t(2,1) = (double)HomMat[9]; t(2,2) = (double)HomMat[10]; t(2,3) = (double)HomMat[11];
+		    t(3,0) = 0; t(3,1) = 0; t(3,2) = 0; t(3,3) = 1;
+	
+		  }	
+	 //     }
+	       
+		  d_halcon.pose = t;
+		  d_halcon.idx = kidx;
+		  HTuple score;
+		  detector.getScoreBeforeRefining(0,score);
+		  d_halcon.rmse = static_cast<float>(score);
+	
+		 // d_halcon.rmse = detec
+	      //  if(d) {
+	//  if(d_halcon) {
+                    // Refine
+                    if(verbose)
+                        COVIS_MSG("Object " << queryName << " detected! Refining pose...");
+                    core::ScopedTimer::Ptr ticp(new core::ScopedTimer("Refinement"));
+                    pcl::IterativeClosestPoint<PointT,PointT> icp;
+                    icp.setInputSource(query[kidx]);
+                    icp.setInputTarget(target);
+//                    icp.setInputSource(surfq[kidx]);
+//                    icp.setInputTarget(surft);
+                    icp.setMaximumIterations(icpIterations);
+                    icp.setMaxCorrespondenceDistance(thres); // Set inlier threshold to lowest resolution
+                    pcl::PointCloud<PointT> tmp;
+                    icp.align(tmp, d_halcon.pose);
+                    if(icp.hasConverged()) {
+                        d_halcon.pose = icp.getFinalTransformation();
+                        d_halcon.rmse = icp.getFitnessScore();
+                    } else {
+                        if(verbose)
+                            COVIS_MSG("\tICP failed!");
+                    }
+                   
+                   // Correct the object index before storing
+                   d_halcon.idx = kidx;
+                   halcon_detections.push_back(d_halcon);
+		   
+		      // Mask out the segment in the scene
+                    if(verbose)
+                        COVIS_MSG("Segmenting object " << queryName << " from scene...");
+                    core::ScopedTimer::Ptr tseg(new core::ScopedTimer("Segmentation"));
+                    CloudT queryT;
+                    pcl::transformPointCloud<PointT>(*query[kidx], queryT, d_halcon.pose);
+		    std::stringstream ss; ss << "/home/thso/query_"; ss << kidx; ss << ".pcd";
+		    pcl::io::savePCDFile(ss.str(),queryT);
+		    pcl::io::savePCDFile("/home/thso/target.pcd",*target);
+                    core::Correspondence::VecPtr corrQueryTTarget = targetSearch.radius(queryT, fres); // TODO: Radius
+                    size_t cnt = 0;
+                    for(size_t l = 0; l < corrQueryTTarget->size(); ++l)
+                        for(size_t m = 0; m < (*corrQueryTTarget)[l].size(); ++m)
+                            if(targetMask[ (*corrQueryTTarget)[l].match[m] ])
+                                ++cnt, targetMask[ (*corrQueryTTarget)[l].match[m] ] = false;
+                    
+                    if(verbose)
+                        COVIS_MSG("\tSegmented " << cnt << "/" << target->size() << " scene points");
+                    
+		  }
+		  
+		    // Prepare detection outputs for current scene (row): [detected present translation_error rotation_error]
+                const int rowidx = detectionOutputs[J+1].rows();
+                detectionOutputs[J+1].conservativeResize(rowidx + 1, 4);
+                detectionOutputs[J+1](rowidx, 0) = bool(d_halcon); // 1 if detected
+                detectionOutputs[J+1](rowidx, 1) = queryMask[kidx]; // 1 if present
+                detectionOutputs[J+1](rowidx, 2) = detectionOutputs[J+1](rowidx, 3) = -1; // Initialize pose errors to invalids
+   */
+	      
+	         /*
+                 * Detection is done, now store results in output files
+                 */
+                
+   /*            if(d_halcon) { // Detected
+                    // Compare the pose with GT (if existent), update detection outputs
+                    if(queryMask[kidx]) { // Detected and present
+                        if(verbose)
+                            COVIS_MSG_INFO("TRUE POSITIVE for object " << queryName << "!");
+                        // Translations
+                        const Eigen::Vector3f tdet = d_halcon.pose.block<3,1>(0,3);
+                        const Eigen::Vector3f tgt = queryPoses[kidx].block<3,1>(0,3);
+                        // Rotations
+                        const Eigen::Matrix3f Rdet = d_halcon.pose.block<3,3>(0,0);
+                        const Eigen::Matrix3f Rgt = queryPoses[kidx].block<3,3>(0,0);                    
+                        // Pose errors
+                        const float terr = (tdet - tgt).norm();
+                        float Rerr;
+                        const float acosarg = 0.5f * ((Rdet.transpose() * Rgt).trace() - 1.0f); // In [-1,1]
+                        if(acosarg < -1.0f + 1e-5f) // Approaching -1
+                            Rerr = M_PI;
+                        else if(acosarg > 1.0f - 1e-5f) // Approaching 1
+                            Rerr = 0.0f;
+                        else
+                            Rerr = acos(acosarg);
+                        Rerr *= 180.0f / M_PI;
+                        // Report pose errors
+                        if(terr <= translationTol && Rerr <= rotationTol) { // Pose errors small, we're good
+                            if(verbose)
+                                COVIS_MSG("\t- and pose is good! Translation/rotation error: [metric/deg]: " <<
+                                        terr << "/" << Rerr);
+                        } else {
+                            if(verbose)
+                                COVIS_MSG_WARN("\t- but with bad pose! Translation/rotation error: [metric/deg]: " <<
+                                        terr << "/" << Rerr);
+                        }
+                        // Update pose errors in detection output
+                        detectionOutputs[J+1](rowidx, 2) = terr;
+                        detectionOutputs[J+1](rowidx, 3) = Rerr;
+                    } else { // Detected, but not present
+                        if(verbose)
+                            COVIS_MSG_WARN("FALSE POSITIVE for object " << queryName << "!");
+                    }
+                } else { // Not detected
+                    if(queryMask[kidx]) { // Not detected, but present
+                        if(verbose)
+                            COVIS_MSG_WARN("FALSE NEGATIVE for object " << queryName << "!");
+                    } else { // Not detected and not present
+                        if(verbose)
+                            COVIS_MSG_INFO("TRUE NEGATIVE for object " << queryName << "!");
+                    }
+            } 
+                     
+	}// End loop over objects for detection (k)
+	*/
+/*	    if(halcon_detections.empty()) {
+                if(verbose)
+                    COVIS_MSG_ERROR("No detections for halcon!");
+            } else {
+                if(visualize) {
+                    visu::DetectionVisu<PointT> dvisu;
+                    dvisu.setBackgroundColor(255, 255, 255);
+                    dvisu.setTitle("Detections for Halcon");
+                    dvisu.setQueries(meshq);
+                    dvisu.setTarget(mesht);
+                    dvisu.setDetections(halcon_detections);
+                    dvisu.visu.loadCameraParameters("camera_parameters.cam");
+                    dvisu.show();
+                }// else {
+                 //   if(verbose)
+                     //   COVIS_MSG_INFO(detections.size() << " detections for feature " << fnamesDetection[j]);
+               // }
+            }
+            */
+	
     } // End loop over all scenes (i)
+    
+    
     
     /*
      * Report overall recognition results

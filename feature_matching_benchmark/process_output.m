@@ -1,13 +1,13 @@
 clc;clear;close all;
 
 % Output PDFs
-% figure_output_dir = '~/workspace/CARO-Publications/Publications/2015/XXX_Which3DFeatureShouldIUse/gfx'; % Comment to avoid
+figure_output_dir = '~/DTU_ROBOT/feature_matching_benchmark/output/bologna2_figures/'; % Comment to avoid
 zoomed_plots = 0; % Use this for [uwa queens rgbd_scenes_0.125]
 zoom_y_limits = [0 0.35]; % Only used if zoomed_plots == 1
 zoom_y_ticks = 0:0.05:0.35; % Only used if zoomed_plots == 1
 
 % Opts
-use_pca = 1; % Use optionally for [bologna2]
+use_pca = 0; % Use optionally for [bologna2]
 use_fusion = 0; % Use fusion of features, not compatible with PCA
 fusion_ternary = 0; % Use ternary instead of binary combinations for fusion
 use_all_dists = 0; % Ignored for PCA and fusion
@@ -27,7 +27,7 @@ end
 
 % Bologna 2 outputs (and PCA)
 data_dir = 'output/bologna2';
-radius_mul = {'30','20','30','30','30','30','30'};
+radius_mul = {'30','20','30','30','30','30','30','20','30'};
 
 % Setting legend position for the pca case:
 % set(findobj(gcf,'Type','axes','Tag','legend'), 'position', [0.6198 0.1510 0.4299 0.8765]);
@@ -62,6 +62,8 @@ features_all = {
     'shot'
     'si'
     'usc'
+    'pfh'
+    '3dsc'
 };
 
 % PCA features
@@ -260,7 +262,7 @@ for distance = distances
             for i = 1:numel(features)
                 style = '';
                 if curve_samples > 0, style = [style marker_map(features{i})]; end
-                plot(1-precision(:,i), recall(:,i), style, 'linewidth', 2, 'color', color_map(features{i}));
+               plot(1-precision(:,i), recall(:,i), style, 'linewidth', 2, 'color', color_map(features{i}));
             end
             xlim([0 1]), ylim([0 1]), set(gca, 'xtick', 0:0.1:1, 'ytick', 0:0.1:1)
             xlabel('1 - Precision', 'fontsize', font_size), ylabel('Recall', 'fontsize', font_size)

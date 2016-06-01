@@ -60,6 +60,12 @@ public:
         surfacemodel = mModelID;
         //return mModelID;
     }
+    
+     HTuple getSurfaceModel(void)const
+    {
+       
+        return mModelID;
+    }
 
 protected:
 	/// Save model parameters in database

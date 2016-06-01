@@ -64,12 +64,14 @@ int main(int argc, const char** argv) {
     po.addFlag('v', "verbose", "print debug information");
     po.addFlag('o', "omp", "use OpenMP, if available");
     po.addFlag('u', "dry-run", "don't save any outputs");
+    po.addFlag('b', "correspondences", "show correspondences");
     
     // Parse
     if(!po.parse(argc, argv))
         return 1;
 
     const bool verbose = po.getFlag("verbose");
+    const bool correspondences = po.getFlag("correspondences");
     
     if(verbose)
         po.print();
@@ -728,46 +730,49 @@ int main(int argc, const char** argv) {
             Eigen::VectorXf fusionTimings;
             if(fusion)
                 fuse(featureCorr, fusionCombinations, fusionTimings);
-            
+          /**************************************************************************************/  
+	  
+	  if(correspondences){
             // TODO: Show correspondences
-//            for(size_t k = 0; k < (pca ? fnumPCA : (fusion ? fnumFusion : fnum)); ++k) {
-//                if(!query.size() == 1)
-//                    continue;
-//                
-//                visu::CorrVisu<PointT> v;
-//                
-//                v.setTitle((pca ? fnamesPCA[k] : (fusion ? fnamesFusion[k] : fnames[k])) + " correspondences");
-//                v.setBackgroundColor(255, 255, 255);
-//                const Eigen::Vector3f t = v.separate(query[0], target, -1.5);
-//
-//                pcl::PolygonMesh::Ptr meshqt(new pcl::PolygonMesh);
-//                CloudT::Ptr cloudqt(new CloudT);
-//                *meshqt = *meshq[0];
-//                pcl::fromPCLPointCloud2<PointT>(meshqt->cloud, *cloudqt);
-//                pcl::transformPointCloud<PointT>(*cloudqt, *cloudqt, t, Eigen::Quaternionf::Identity());
-//                pcl::toPCLPointCloud2<PointT>(*cloudqt, meshqt->cloud);
-//                
-//                CloudT::Ptr queryt(new CloudT);
-//                pcl::transformPointCloud<PointT>(*query[0], *queryt, t, Eigen::Quaternionf::Identity());
-//                
-//                v.setQuery(queryt);
-//                v.setTarget(target);
-//                v.setShowPoints(false),
-//                v.addMesh(meshqt, "object");
-//                v.addMesh(mesht, "scene");
-//                v.addColor<PointT>(queryt, 255, 0, 0, "query-seeds");
-//                v.addColor<PointT>(target, 255, 0, 0, "target-seeds");
-//                
-//                core::Correspondence::Vec corrCopy = *featureCorr[k];
-//                core::sort(corrCopy);
-//                corrCopy.resize(100);
-//                
-//                
-//                v.setCorr(corrCopy);
-//                v.setLevel(1);
-//                v.show();
-//            }
-            
+            for(size_t k = 0; k < (pca ? fnumPCA : (fusion ? fnumFusion : fnum)); ++k) {
+                if(!query.size() == 1)
+                    continue;
+                
+                visu::CorrVisu<PointT> v;
+                
+                v.setTitle((pca ? fnamesPCA[k] : (fusion ? fnamesFusion[k] : fnames[k])) + " correspondences");
+                v.setBackgroundColor(255, 255, 255);
+                const Eigen::Vector3f t = v.separate(query[0], target, -1.5);
+
+                pcl::PolygonMesh::Ptr meshqt(new pcl::PolygonMesh);
+                CloudT::Ptr cloudqt(new CloudT);
+                *meshqt = *meshq[0];
+                pcl::fromPCLPointCloud2<PointT>(meshqt->cloud, *cloudqt);
+                pcl::transformPointCloud<PointT>(*cloudqt, *cloudqt, t, Eigen::Quaternionf::Identity());
+                pcl::toPCLPointCloud2<PointT>(*cloudqt, meshqt->cloud);
+                
+                CloudT::Ptr queryt(new CloudT);
+                pcl::transformPointCloud<PointT>(*query[0], *queryt, t, Eigen::Quaternionf::Identity());
+                
+                v.setQuery(queryt);
+                v.setTarget(target);
+                v.setShowPoints(false),
+                v.addMesh(meshqt, "object");
+                v.addMesh(mesht, "scene");
+                v.addColor<PointT>(queryt, 255, 0, 0, "query-seeds");
+                v.addColor<PointT>(target, 255, 0, 0, "target-seeds");
+                
+                core::Correspondence::Vec corrCopy = *featureCorr[k];
+                core::sort(corrCopy);
+                corrCopy.resize(100);
+                
+                
+                v.setCorr(corrCopy);
+                v.setLevel(1);
+                v.show();
+            }
+	  }
+            /**************************************************************************************/
             /**
              * Resolving correct matches
              */

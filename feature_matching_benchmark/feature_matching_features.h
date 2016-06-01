@@ -31,7 +31,9 @@ const std::string fnamesAll[] = {
         "rops",
         "shot",
         "si",
-        "usc"
+        "usc",
+	"pfh",
+	"3dsc"
 };
 
 // Useful macros
@@ -47,6 +49,10 @@ typedef pcl::SHOT352 ShotT; // Descriptor
 typedef pcl::Histogram<153> SpinT; // Histogram
 //typedef pcl::ShapeContext1980 UscT;// Descriptor
 typedef pcl::UniqueShapeContext1960 UscT;// Descriptor
+typedef pcl::ShapeContext1980 DSCT;// Descriptor
+typedef pcl::PFHSignature125 PfhT;
+typedef pcl::VFHSignature308 CvfhT;
+
 
 template<typename FeatureT>
 inline void feat2mat(const typename pcl::PointCloud<FeatureT>& feat, MatrixT& mfeat) {

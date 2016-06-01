@@ -6,8 +6,8 @@
 
 # Test parameters
 dec=-1 # Decimation
-rad=30,20,30,30,30,30,30 # Feature radius multiplier
-res=6 # Feature resolution multiplier
+rad=30,20,30,30,30,30,30,20,30 # Feature radius multiplier 
+res=20 #6# Feature resolution multiplier
 thres=1 # Inlier threshold multipler, set to <= 0 for using 1 x mesh resolution
 
 # Paths
@@ -18,8 +18,8 @@ output_dir=output/bologna2
 
 # Positionals
 objects=`ls $data_dir/dataset1-2_models/3D_models/Stanford/*.ply -v1`
-scenes=`ls $data_dir/dataset2_scenes/3D_models/Stanford/Random/*.ply -v1`
-#scenes=`ls $data_dir/dataset2_scenes/3D_models/Stanford/Random/*.ply -v1 | grep 'Scene0_1-8.ply'` # Fast test of first scene only
+#scenes=`ls $data_dir/dataset2_scenes/3D_models/Stanford/Random/*.ply -v1`
+scenes=`ls $data_dir/dataset2_scenes/3D_models/Stanford/Random/*.ply -v1 | grep 'Scene0_1-8.ply'` # Fast test of first scene only
 pose_dir=$data_dir/dataset2_scenes/3D_models/Stanford/Random
 pose_separator="-"
 pose_suffix=xf

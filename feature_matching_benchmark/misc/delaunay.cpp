@@ -56,7 +56,12 @@ int main(int argc, char** argv) {
     // Perform triangulation
     COVIS_MSG_INFO("Triangulating...");
     vtkSmartPointer<vtkDelaunay2D> del = vtkDelaunay2D::New();;
+  #if VTK_MAJOR_VERSION < 6
     del->SetInput(poly);
+  #else
+    del->SetInputData(poly);
+  #endif
+  //  del->SetAlpha(10);
     del->Update();
     vtkSmartPointer<vtkPolyData> tri = del->GetOutput();
     COVIS_ASSERT(size_t(tri->GetNumberOfPoints()) == surf->size());
@@ -115,7 +120,11 @@ int main(int argc, char** argv) {
         COVIS_MSG_INFO("Removing unused points...");
         vtkSmartPointer<vtkCleanPolyData> clean = vtkCleanPolyData::New();
         clean->PointMergingOff();
+	#if VTK_MAJOR_VERSION < 6
         clean->SetInput(tri);
+  	#else
+    	clean->SetInputData(tri);
+  	#endif
         clean->Update();
         vtkSmartPointer<vtkPolyData> polyClean = clean->GetOutput();
         COVIS_MSG("\tRemoved " << tri->GetNumberOfPoints() - polyClean->GetNumberOfPoints() << "/" << tri->GetNumberOfPoints() << " and " <<

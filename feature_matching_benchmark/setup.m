@@ -9,6 +9,8 @@ dimension_map = containers.Map(...
         'shot'
         'si'
         'usc'
+        'pfh'
+        '3dsc'
     },...
     {...
         '30'
@@ -17,6 +19,8 @@ dimension_map = containers.Map(...
         '135'
         '352'
         '153'
+        '1960'
+        '125'
         '1980'
     }...
 );
@@ -31,6 +35,8 @@ if use_pca
             'shot'
             'si'
             'usc'
+            'pfh'
+            '3dsc'
             % PCA
             'ecsad_pca99'
             'ecsad_pca95'
@@ -73,7 +79,9 @@ if use_pca
             'RoPS(135)'
             'SHOT(352)'
             'SI(153)'
-            'USC(1980)'
+            'USC(1960)'
+            'PFH(125)'
+            '3DSC(1980)'
             % PCA
             'ECSAD+PCA(22)'
             'ECSAD+PCA(14)'
@@ -120,6 +128,8 @@ else
             'shot'
             'si'
             'usc'
+            'pfh'
+            '3dsc'
             % PCA
             'ecsad_pca99'
             'ecsad_pca95'
@@ -163,6 +173,8 @@ else
             'SHOT'
             'SI'
             'USC'
+            'PFH'
+            '3DSC'
             % PCA versions
             'ECSAD+PCA(22)'
             'ECSAD+PCA(14)'
@@ -210,6 +222,8 @@ color_map = containers.Map(...
         'shot'
         'si'
         'usc'
+        'pfh'
+        '3dsc'
         % PCA
         'ecsad_pca99'
         'ecsad_pca95'
@@ -256,6 +270,8 @@ color_map = containers.Map(...
         [120 20 225] ./ 255 % shot
         [150 50 0] ./ 255 % si
         [0.75 0.75 0] % usc
+        [0 0.6 0.6] % pfh
+        [0.6 0 0.6] % 3dsc
         % PCA
         [0.9 0 0]% ecsad
         [0.9 0 0]
@@ -305,6 +321,8 @@ marker_map = containers.Map(...
         'shot'
         'si'
         'usc'
+        'pfh'
+        '3dsc'
         % PCA
         'ecsad_pca99'
         'ecsad_pca95'
@@ -351,6 +369,8 @@ marker_map = containers.Map(...
         '-d' % shot
         '-v' % si
         '->' % usc
+        '-^' %pfh
+        '-^' %3dsc
         % PCA
         '--o' % ecsad
         '-.o'

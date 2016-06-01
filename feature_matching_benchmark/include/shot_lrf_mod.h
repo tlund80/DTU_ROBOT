@@ -44,7 +44,6 @@
 #include <pcl/point_types.h>
 #include <pcl/features/feature.h>
 
-
 namespace pcl
 {
   /** \brief SHOTLocalReferenceFrameEstimation estimates the Local Reference Frame used in the calculation

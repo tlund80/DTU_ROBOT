@@ -28,7 +28,7 @@ struct SurfaceModelDetectionParameters
 	SurfaceModelDetectionParameters() :
 					RelSamplingDistance(HTuple(0.03)),
 					ReturnResultHandle(HTuple("true")),
-					KeyPointFraction(HTuple(0.2)),
+					KeyPointFraction(HTuple(0.5)),
 					MinScore(HTuple(0)),
 					num_matches(HTuple(1)),
 					max_overlap_dist_rel(HTuple(0.5)),

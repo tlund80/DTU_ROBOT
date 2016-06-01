@@ -115,7 +115,11 @@ void normals(vtkSmartPointer<vtkPolyData>& vtkpoly) {
 //    pdn->AutoOrientNormalsOn(); // Does not work entirely
 //    pdn->NonManifoldTraversalOn();
     pdn->SplittingOff();
+ #if VTK_MAJOR_VERSION < 6
     pdn->SetInput(vtkpoly);
+ #else
+    pdn->SetInputData (vtkpoly);
+  #endif
     pdn->Update();
     vtkpoly = pdn->GetOutput();
 }

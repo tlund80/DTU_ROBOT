@@ -1,12 +1,12 @@
-inipath = ['/home/andersgb1/workspace/datasets/bologna/'...
-    'dataset2_scenes/3D_models/Stanford/Random/Dataset2_configFiles/'];
+inipath = ['/home/thso/workspace/datasets/bologna/'...
+    'dataset1_scenes/3D_models/Stanford/Random/Dataset1_configFiles/'];
 
 filepath = [inipath '/..'];
 inifiles = dir([inipath '/*.ini']);
 
 for i = 1:numel(inifiles)
     keys = inifile([inipath '/' inifiles(i).name], 'readall');
-
+    
     number = str2num(keys{1,4});
     idx_scene = 0;
     for j = 1:size(keys, 1);
@@ -15,6 +15,7 @@ for i = 1:numel(inifiles)
             break;
         end
     end
+   
     assert(idx_scene > 0);
     scene = strrep(keys{idx_scene,4}, '"', '');
     scene = regexprep(scene, '\\', '/');
@@ -32,7 +33,7 @@ for i = 1:numel(inifiles)
         gtfile = regexprep(gtfile, '\\', '/');
         gtfile = strrep(gtfile, '3D models', '3D_models');
         [p gtfile ext] = fileparts(gtfile);
-        gtfile_new_base = [scene '-' model];
+        gtfile_new_base = [scene '-' model]
         copyfile([filepath '/' gtfile ext], [filepath '/' gtfile_new_base ext]);
         
         idx = idx + 2;

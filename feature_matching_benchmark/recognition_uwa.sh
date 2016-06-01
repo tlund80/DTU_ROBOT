@@ -28,7 +28,7 @@ rot_tol=7.5
 exec_dir=build
 exec_name=feature_matching_recognition
 data_dir=~/workspace/datasets/uwa
-output_dir=output/uwa_rec
+output_dir=output/uwa
 
 # Positionals
 objects=`ls $data_dir/models/*.ply -v1 | grep -v rhino`

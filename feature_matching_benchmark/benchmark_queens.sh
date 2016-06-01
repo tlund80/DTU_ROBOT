@@ -6,7 +6,7 @@
 
 # Test parameters
 dec=0.75 # Decimation
-rad=10,7.5,22.5,12.5,12.5,20,12.5 # Feature radius multiplier
+rad=10,7.5,22.5,12.5,12.5,20,12.5,7.5,20 # Feature radius multiplier
 res=5 # Feature resolution multiplier
 thres=1 # Inlier threshold multipler, set to <= 0 for using 1 x mesh resolution
 
@@ -25,7 +25,7 @@ pose_suffix=txt
 
 # Options and flags
 options="--pose-separator=$pose_separator --decimation=$dec --radius=$rad --resolution=$res --threshold=$thres --metrics L2_RATIO"
-flags="--match-scene-objects --verbose"
+flags="--match-scene-objects --verbose " #--correspondences
 
 # Start
 $exec_dir/$exec_name "$objects" "$scenes" $pose_dir $pose_suffix $output_dir $options $flags $* 2> /dev/null

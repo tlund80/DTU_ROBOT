@@ -1,8 +1,8 @@
 clear;clc;
 
 % Set data directories
-model_dir = '/home/andersgb1/workspace/datasets/queens/Models';
-scene_dir = '/home/andersgb1/workspace/datasets/queens/LIDAR_Point_Clouds';
+model_dir = '/home/thso/workspace/datasets/queens/Models';
+scene_dir = '/home/thso/workspace/datasets/queens/LIDAR_Point_Clouds';
 
 % All files
 pts_ops_files = {};
@@ -13,10 +13,11 @@ num_pts_files = 0;
 while length(ops_files_str) > 0
     [token ops_files_str] = strtok(ops_files_str);
     pts_ops_files = [pts_ops_files token];
+    %num_pts_files = num_pts_files + 1;
 end
 
-% % Find scene files
-% [stat pts_files_str] = unix(['find ' scene_dir ' -name *.pts']);
+ % Find scene files
+% [stat pts_files_str] = unix(['find ' scene_dir ' -name *.pts'])
 % while length(pts_files_str) > 0
 %     [token pts_files_str] = strtok(pts_files_str);
 %     pts_ops_files = [pts_ops_files token];

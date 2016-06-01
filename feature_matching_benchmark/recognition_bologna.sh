@@ -5,11 +5,11 @@
 ########################################################################
 
 # General
-dec=0.125 # Decimation
+dec=0.05 #0.5 #0.125 # Decimation
 
 # Features
-features=ecsad,fpfh,ndhist,rops,shot,si
-rad=10,10,20,12.5,17.5,10
+features=ecsad,fpfh,ndhist,rops,shot,si,usc,pfh,3dsc
+rad=10,10,20,12.5,17.5,10,10,10,10
 res=5 # Feature resolution multiplier, scenes
 resq=2.5 # Feature resolution multiplier, objects
 
@@ -27,15 +27,18 @@ rot_tol=7.5
 # Paths
 exec_dir=build
 exec_name=feature_matching_recognition
+#data_dir=/media/thso/Elements    
 data_dir=~/workspace/datasets/bologna
-output_dir=output/bologna2_rec
+output_dir=output/bologna2
 
 # Positionals
-
+#objects=`ls $data_dir/Object_pose_dataset/models/3D_models/*.ply -v1` 
 objects=`ls $data_dir/dataset1-2_models/3D_models/Stanford/*.ply -v1`
+#scenes=`ls $data_dir/scene_000/stl/mesh/*.ply -v1` 
 scenes=`ls $data_dir/dataset2_scenes/3D_models/Stanford/Random/*.ply -v1`
 #scenes=`ls $data_dir/dataset2_scenes/3D_models/Stanford/Random/*.ply -v1 | grep 'Scene0_1-8.ply'` # Fast test of first scene only
 pose_dir=$data_dir/dataset2_scenes/3D_models/Stanford/Random
+#pose_dir=$data_dir/dataset2_scenes/3D_models/Stanford
 pose_separator="-"
 pose_suffix=xf
 
