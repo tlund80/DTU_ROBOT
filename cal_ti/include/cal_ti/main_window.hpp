@@ -11,8 +11,14 @@
 /*****************************************************************************
 ** Includes
 *****************************************************************************/
+#include <QtGlobal>
 
-#include <QtGui/QMainWindow>
+#if QT_VERSION >= 0x050000
+    #include <QMainWindow>
+#else
+    #include <QtGui/QMainWindow>
+#endif
+
 #include "ui_main_window.h"
 #ifdef USE_ROS
     #include "qnode.hpp"

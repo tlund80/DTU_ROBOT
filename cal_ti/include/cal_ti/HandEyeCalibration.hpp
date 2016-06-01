@@ -44,7 +44,8 @@ public:
 	std::string calibResultsAsString();
 	void updateCalibrationFlags();
 	void saveRobotPoses(std::string path);
-	void loadRobotPoses();
+    void loadRobotPoses_xml();
+    void loadRobotPoses_txt();
 
 
 	void setFilesLists(QStringList files);

@@ -11,17 +11,30 @@
 #define UI_ANNOTATEDIALOG_H
 
 #include <QtCore/QVariant>
-#include <QtGui/QAction>
-#include <QtGui/QApplication>
-#include <QtGui/QButtonGroup>
-#include <QtGui/QDialog>
-#include <QtGui/QHBoxLayout>
-#include <QtGui/QHeaderView>
-#include <QtGui/QLabel>
-#include <QtGui/QPushButton>
-#include <QtGui/QVBoxLayout>
-#include <QDesktopWidget>
 
+#if QT_VERSION >= 0x050000
+    #include <QAction>
+    #include <QApplication>
+    #include <QButtonGroup>
+    #include <QDialog>
+    #include <QHBoxLayout>
+    #include <QHeaderView>
+    #include <QLabel>
+    #include <QPushButton>
+    #include <QVBoxLayout>
+#else
+    #include <QtGui/QAction>
+    #include <QtGui/QApplication>
+    #include <QtGui/QButtonGroup>
+    #include <QtGui/QDialog>
+    #include <QtGui/QHBoxLayout>
+    #include <QtGui/QHeaderView>
+    #include <QtGui/QLabel>
+    #include <QtGui/QPushButton>
+    #include <QtGui/QVBoxLayout>
+#endif
+
+#include <QDesktopWidget>
 #include <iostream>
 
 #define DIALOG_SIZE_PERCENT 0.95
@@ -102,10 +115,18 @@ public:
 
     void retranslateUi(QDialog *annotationDialog)
     {
+        #if QT_VERSION >= 0x050000
+        annotationDialog->setWindowTitle(QApplication::translate("annotationDialog", "Dialog", 0));
+        _imgLabel->setText(QString());
+        btnOk->setText(QApplication::translate("annotationDialog", "Apply Roi", 0));
+        btnSkip->setText(QApplication::translate("annotationDialog", "Skip image", 0));
+        #else
         annotationDialog->setWindowTitle(QApplication::translate("annotationDialog", "Dialog", 0, QApplication::UnicodeUTF8));
         _imgLabel->setText(QString());
         btnOk->setText(QApplication::translate("annotationDialog", "Apply Roi", 0, QApplication::UnicodeUTF8));
         btnSkip->setText(QApplication::translate("annotationDialog", "Skip image", 0, QApplication::UnicodeUTF8));
+
+        #endif
     } // retranslateUi
 
     void resize(){

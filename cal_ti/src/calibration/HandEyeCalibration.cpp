@@ -7,6 +7,9 @@
 
 #include "../../include/cal_ti/HandEyeCalibration.hpp"
 
+#include <iostream>
+#include <fstream>
+
 namespace dti {
 
 HandEyeCalibration::HandEyeCalibration(SharedData* sharedData) {
@@ -64,7 +67,7 @@ void HandEyeCalibration::storeResults(std::string path){
 
 }
 
-void HandEyeCalibration::loadRobotPoses()
+void HandEyeCalibration::loadRobotPoses_xml()
 {
 
     QString path = _sharedData->getRobotPosePath();
@@ -181,6 +184,94 @@ void HandEyeCalibration::loadRobotPoses()
 	}
 
 }
+
+// This method reads robot poses from a tx file in the format:
+//          Translation                 Quaternion
+//      x           y       z       w       x      y    z
+//      [[1233.0, -379.8, 459.6], [0.151, 0.73, 0.52, -0.417]]
+//      [[955.4, -173.1, 459.6], [0.165, 0.872, 0.24, -0.394]]
+//      [[955.4, 173.1, 459.6], [0.239, -0.854, 0.273, 0.372]]
+//      [[1233.0, 379.8, 459.6], [0.343, -0.662, 0.613, 0.261]]
+//      [[1237.8, 352.9, 481.3], [0.273, -0.691, 0.567, 0.356]]
+//      [[979.8, 160.8, 481.3], [0.051, 0.874, -0.126, -0.466]]
+//      ......................................................
+//      ......................................................
+//      ......................................................
+//      [[979.8, -160.8, 481.3], [0.269, 0.833, 0.286, -0.389]]
+void HandEyeCalibration::loadRobotPoses_txt(){
+
+    QString path = _sharedData->getRobotPosePath();
+  //  Q_EMIT consoleSignal(QString("Loading robot poses from: ").append(path).append("\n"), dti::VerboseLevel::INFO);
+    if (_robPoses.size() != 0) {
+        Q_EMIT consoleSignal("Robot poses already loaded into the system!!\n", dti::VerboseLevel::INFO);
+    return;
+    }
+
+
+    std::string line;
+ //   std::vector<Eigen::Affine3f> T;
+    std::ifstream infile(path.toStdString());
+
+    while(!infile.eof()) // To get you all the lines.
+    {
+        std::getline(infile,line); // Saves the line in STRING.
+
+        //Erase brances
+        line.erase(std::remove(line.begin(), line.end(), '['), line.end());
+        line.erase(std::remove(line.begin(), line.end(), ']'), line.end());
+
+        //Split string
+        std::vector<std::string> v;
+        int i = 0;
+        int j = line.find(',');
+        while (j != line.npos) {
+              v.push_back(line.substr(i, j-i));
+              i = ++j;
+              j = line.find(',', j);
+
+              if (j == line.npos)
+                 v.push_back(line.substr(i, line.length()));
+           }
+
+        //Erase space
+        for(int k = 0; k<v.size();k++)
+            v[k].erase(std::remove(v[k].begin(),v[k].end(),' '),v[k].end());
+
+        if(v.size() != 7)
+            break;
+
+        //Store tiv pose structure
+        tiv::pose p;
+        p.t.x = std::stof(v[0]);
+        p.t.y = std::stof(v[1]);
+        p.t.z = std::stof(v[2]);
+        p.q.x = std::stof(v[3]);
+        p.q.y = std::stof(v[4]);
+        p.q.z = std::stof(v[5]);
+        p.q.w = std::stof(v[6]);
+
+        _robPoses.push_back(p);
+
+
+       //Store Eigen affine data structure
+//        Affine3f transform = Affine3f::Identity();
+//        transform.translation() << std::stof(v[0]), std::stof(v[1]), std::stof(v[2]);
+//        transform.rotate (Quaternionf(std::stof(v[3]), std::stof(v[4]), std::stof(v[5]), std::stof(v[6])));
+//        T.push_back(transform);
+
+        //std::cout<<transform.matrix() << std::endl; // Prints our STRING.
+        //std::cout<<line << std::endl; // Prints our STRING.
+    }
+    infile.close();
+
+    _sharedData->clearRobotPoseArray();
+    for(int i = 0; i<_robPoses.size();i++){
+        _sharedData->addRobotPose2Array(_robPoses[i]);
+    }
+
+}
+
+
 
 void HandEyeCalibration::saveRobotPoses(std::string path)
 {
@@ -717,7 +808,11 @@ double HandEyeCalibration::calibrate()
 	if(_robPoses.size() == 0){
 
         if(!_sharedData->getRobotPosePath().isEmpty()){
-            loadRobotPoses();
+
+            if(_sharedData->getRobotPosePath().contains(".xml"))
+                loadRobotPoses_xml();
+            if(_sharedData->getRobotPosePath().contains(".txt"))
+                loadRobotPoses_txt();
         }else{
             Q_EMIT consoleSignal("Cannot preform hand/eye calibration.\n  --> No Robot poses not recorded or loaded.\n", dti::VerboseLevel::WARN);
             return 0;

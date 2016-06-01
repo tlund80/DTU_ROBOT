@@ -77,10 +77,23 @@ SUBDIRS += ext src include ui
 # Linux
 unix:!macx {
 
-    CONFIG += link_pkgconfig
-    # Link VTK and Boost (no pkg-config)
-    INCLUDEPATH += /usr/include/vtk-5.8/
-    LIBS += -lQVTK -lvtkCommon -lvtkFiltering -lvtkRendering -lvtkIO -lvtkGraphics -lvtkHybrid
+    #Link VTK and Boost (no pkg-config)
+    INCLUDEPATH += /usr/local/include/vtk-6.3/
+    LIBS += \
+            -lvtkGUISupportQt-6.3\
+            -lvtkCommonCore-6.3 \
+            -lvtkFiltersCore-6.3 \
+            -lvtkRenderingCore-6.3 \
+            -lvtkRenderingLOD-6.3 \
+            -lvtkCommonDataModel-6.3 \
+            -lvtkCommonMath-6.3 \
+            -lvtkIOCore-6.3 \
+            -lvtkpng-6.3 \
+            -lvtksys-6.3 \
+            -lvtktiff-6.3 \
+            -lvtkjpeg-6.3 \
+            -lvtkexpat-6.3 \
+            -lvtkzlib-6.3
 
     INCLUDEPATH += $$PWD/ext/levmar-2.6
     DEPENDPATH += $$PWD/ext/levmar-2.6/build
@@ -93,11 +106,30 @@ unix:!macx {
     #Lapack
     LIBS += -L/usr/lib -llapack
 
-    # PCL pkg-config workaround
-    LIBS += -lboost_system -lpcl_visualization -lpcl_common -lpcl_io -lpcl_search -lpcl_surface
+    #Boost pkg-config workaround
+    LIBS += -lboost_system
+
+    INCLUDEPATH += /usr/include/pcl-1.7/ #/usr/local/include/pcl-1.8
+    LIBS += -lpcl_visualization \
+            -lpcl_common \
+            -lpcl_io \
+            -lpcl_search \
+            -lpcl_surface \
+            -lpcl_filters \
+            -lpcl_kdtree \
+            -lpcl_features \
+            -lpcl_keypoints \
+            -lpcl_segmentation \
+            -lpcl_sample_consensus \
+            -lpcl_registration \
+            -lpcl_recognition
+
     # PKG-config libs
-    INCLUDEPATH += /usr/local/include/pcl-1.8 /usr/include/eigen3/
-    PKGCONFIG += gl glu x11 /opt/ros/hydro/lib/pkgconfig/opencv.pc eigen3
+    CONFIG += link_pkgconfig
+
+    INCLUDEPATH += /usr/include/eigen3/
+    PKGCONFIG += gl glu x11 /usr/lib/x86_64-linux-gnu/pkgconfig/opencv.pc eigen3 #/usr/local/lib/pkgconfig/opencv.pc
+
  #   PKGCONFIG += pcl_registration-1.8 pcl_visualization-1.8 pcl_surface-1.8 pcl_search-1.8 pcl_filters-1.8 pcl_kdtree-1.8 pcl_tracking-1.8
   #  QMAKE_CXXFLAGS += -fopenmp
   #  QMAKE_LFLAGS *= -fopenmp

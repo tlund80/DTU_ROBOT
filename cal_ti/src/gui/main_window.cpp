@@ -15,6 +15,10 @@
 #include <iostream>
 #include "../../include/cal_ti/main_window.hpp"
 
+#if QT_VERSION >= 0x050000
+#include <QFileDialog>
+#include <QScrollBar>
+#endif
 /*****************************************************************************
 ** Namespaces
 *****************************************************************************/
@@ -1213,7 +1217,7 @@ void MainWindow::selectPath() {
 				startPath = ui._RobotPosePath->text();
 				if (!QDir(startPath).exists())
 					startPath = QDir::currentPath();
-                filePath = QFileDialog::getOpenFileName(this, tr("Load a Robot file (.xml)"), startPath);
+                filePath = QFileDialog::getOpenFileName(this, tr("Load a Robot file (.xml/.txt)"), startPath);
                 std::cout << "filepath " << filePath.toStdString() << std::endl;
                 if (filePath != ""){
 					ui._RobotPosePath->setText(filePath);

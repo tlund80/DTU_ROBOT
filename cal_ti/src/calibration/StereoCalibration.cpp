@@ -287,16 +287,31 @@ double StereoCalibration::calibrate()
 	int calibrationFlags = calcStereoFlags();
 	int termCriteriaFlags = calcStereoTerminationFlags();
 
-	_rms = stereoCalibrate(
-			_objectPoints,
-			_imagePoints[LEFT], _imagePoints[RIGHT],
-			cameraMatrix[LEFT], distCoeffs[LEFT],
-			cameraMatrix[RIGHT], distCoeffs[RIGHT],
+#ifdef CV_VERSION < 3
+     _rms = stereoCalibrate(
+            _objectPoints,
+            _imagePoints[LEFT], _imagePoints[RIGHT],
+            cameraMatrix[LEFT], distCoeffs[LEFT],
+            cameraMatrix[RIGHT], distCoeffs[RIGHT],
             _imageSize,
             R, T, E, F,
             TermCriteria(termCriteriaFlags, getStereoTermIterations(), getStereoTermEpsilon()),
-            calibrationFlags);
+            calibrationFlags
+            );
+#else
+    _rms = stereoCalibrate(
+            _objectPoints,
+            _imagePoints[LEFT], _imagePoints[RIGHT],
+            cameraMatrix[LEFT], distCoeffs[LEFT],
+            cameraMatrix[RIGHT], distCoeffs[RIGHT],
+            _imageSize,
+            R, T, E, F,
+            calibrationFlags,
+            TermCriteria(termCriteriaFlags, getStereoTermIterations(), getStereoTermEpsilon())
+            );
 
+
+#endif
 	cameraMatrix[LEFT].copyTo(_camMatRes[LEFT]);
 	cameraMatrix[RIGHT].copyTo(_camMatRes[RIGHT]);
 

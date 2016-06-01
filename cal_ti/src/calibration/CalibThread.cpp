@@ -792,7 +792,11 @@ void CalibThread::runHandEye()
 
 				if(_sharedData->getCalTypeHandEye() == dti::HandEyeCalibration_offline){
 					//Loading robot poses from file
-					_PCalibHandEye->loadRobotPoses();
+                    if(_sharedData->getRobotPosePath().contains(".xml"))
+                        _PCalibHandEye->loadRobotPoses_xml();
+                    if(_sharedData->getRobotPosePath().contains(".txt"))
+                        _PCalibHandEye->loadRobotPoses_txt();
+                    //_PCalibHandEye->loadRobotPoses();
 				}else{
 					//Set Robotdata from "live robot poses" store in shared data
 					_PCalibHandEye->setRobotPoses(_sharedData->getRobotPoseArray());
@@ -905,7 +909,12 @@ void CalibThread::dosaveRobotPoses()
 
 void CalibThread::doLoadRobotPoses(){
     _PCalibHandEye->clearRobotPoses();
-    _PCalibHandEye->loadRobotPoses();
+    if(_sharedData->getRobotPosePath().contains(".xml"))
+        _PCalibHandEye->loadRobotPoses_xml();
+    if(_sharedData->getRobotPosePath().contains(".txt"))
+       _PCalibHandEye->loadRobotPoses_txt();
+
+    //_PCalibHandEye->loadRobotPoses();
 
 }
 

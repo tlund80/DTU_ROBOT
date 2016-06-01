@@ -181,7 +181,8 @@ void MonoCalibration::resizePoints(int newSize)
 
 void MonoCalibration::printCalibResults()
 {
-	std::string str = calibResultsAsString();
+    std::string str = calibResultsAsString();
+    std::cout << str << std::endl;
     Q_EMIT consoleSignal(QString(str.c_str()), dti::VerboseLevel::INFO);
 }
 
