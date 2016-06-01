@@ -1,0 +1,4 @@
+*.o
+*.cpp
+cal_ti
+Makefile
