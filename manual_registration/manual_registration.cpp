@@ -56,6 +56,9 @@ ManualRegistration::ManualRegistration () {
     ui_->setupUi (this);
 
     this->setWindowTitle ("PCL Manual Registration");
+    
+    src_pc_.reset(new Cloud);
+    dst_pc_.reset(new Cloud);
 
     // Set up the source window
     vis_src_.reset (new pcl::visualization::PCLVisualizer ("", false));
@@ -66,12 +69,14 @@ ManualRegistration::ManualRegistration () {
     vis_src_->setWindowBorders(false);
     vis_src_->setupInteractor(_src_widget->GetInteractor(), _src_widget->GetRenderWindow());
     vis_src_->getInteractorStyle ()->setKeyboardModifier (pcl::visualization::INTERACTOR_KB_MOD_SHIFT);
-    vis_src_->addText("+/-					-> Increase/decrease point size", 30, 130);
-    vis_src_->addText("shift + left click	-> Select point", 30, 110);
-    vis_src_->addText("r					-> Reset camera view", 30, 90);
-    vis_src_->addText("f					-> Zoom to point", 30, 70);
-    vis_src_->addText("t					-> Toggle color", 30, 50);
-    vis_src_->addText("n					-> Toggle normals", 30, 30);
+     std::stringstream ss; ss << src_pc_->points.size(); ss << " points picked";
+    vis_src_->addText(ss.str(), 30, 150, "a");
+    vis_src_->addText("+/-					-> Increase/decrease point size", 30, 130,"b");
+    vis_src_->addText("shift + left click	-> Select point", 30, 110,"c");
+    vis_src_->addText("r					-> Reset camera view", 30, 90,"d");
+    vis_src_->addText("f					-> Zoom to point", 30, 70, "e");
+    vis_src_->addText("t					-> Toggle color", 30, 50,"f");
+    vis_src_->addText("n					-> Toggle normals", 30, 30, "g");
     ui_->layout_src->update();
       //  ui_->qvtk_widget_src->SetRenderWindow (vis_src_->getRenderWindow ());
    // vis_src_->setupInteractor (ui_->qvtk_widget_src->GetInteractor (), ui_->qvtk_widget_src->GetRenderWindow ());
@@ -91,12 +96,14 @@ ManualRegistration::ManualRegistration () {
  //   ui_->qvtk_widget_dst->SetRenderWindow (vis_dst_->getRenderWindow ());
  //   vis_dst_->setupInteractor (ui_->qvtk_widget_dst->GetInteractor (), ui_->qvtk_widget_dst->GetRenderWindow ());
     vis_dst_->getInteractorStyle ()->setKeyboardModifier (pcl::visualization::INTERACTOR_KB_MOD_SHIFT);
-	vis_dst_->addText("+/-					-> Increase/decrease point size", 30, 130);
-	vis_dst_->addText("shift + left click	-> Select point", 30, 110);
-	vis_dst_->addText("r					-> Reset camera view", 30, 90);
-	vis_dst_->addText("f					-> Zoom to point", 30, 70);
-	vis_dst_->addText("t					-> Toggle color", 30, 50);
-	vis_dst_->addText("n					-> Toggle normals", 30, 30);
+	ss.str(""); ss << dst_pc_->points.size(); ss <<" points picked";
+	vis_dst_->addText(ss.str(), 30,  150, "a");
+	vis_dst_->addText("+/-					-> Increase/decrease point size", 30, 130,"b");
+	vis_dst_->addText("shift + left click	-> Select point", 30, 110, "c");
+	vis_dst_->addText("r					-> Reset camera view", 30, 90, "d");
+	vis_dst_->addText("f					-> Zoom to point", 30, 70, "e");
+	vis_dst_->addText("t					-> Toggle color", 30, 50, "f");
+	vis_dst_->addText("n					-> Toggle normals", 30, 30, "g");
   //  ui_->qvtk_widget_dst->update ();
 
     vis_dst_->registerPointPickingCallback (&ManualRegistration::DstPointPickCallback, *this);
@@ -111,8 +118,7 @@ ManualRegistration::ManualRegistration () {
 //    cloud_src_modified_ = true; // first iteration is always a new pointcloud
 //    cloud_dst_modified_ = true;
 
-    src_pc_.reset(new Cloud);
-    dst_pc_.reset(new Cloud);
+ 
     
 }
 
@@ -125,6 +131,7 @@ void ManualRegistration::on_btnModel_clicked(){
 		tr("Open Model point cloud"),tr("/home"));//, filters);
 
 	ManualRegistration::CloudPtr cloud_src(new ManualRegistration::Cloud);
+	cloud_src_sampled_.reset(new ManualRegistration::Cloud);
 	ManualRegistration::MeshPtr mesh_src_(new ManualRegistration::Mesh);
 
 	if (!fileName.isEmpty()){
@@ -140,7 +147,6 @@ void ManualRegistration::on_btnModel_clicked(){
 					QString("Could not read .pcd model from" + fileName));
 
 			}
-			this->setSrcCloud(cloud_src);
 		
 		}else{
 			std::cout << "Loading ply from -> " << fileName.toStdString() << std::endl;
@@ -151,10 +157,7 @@ void ManualRegistration::on_btnModel_clicked(){
 					QString("Warning"),
 					QString("Could not read .ply model from " + fileName));
 			}
-			pcl::fromPCLPointCloud2(mesh_src_->cloud, *cloud_src);
-			this->setSrcCloud(cloud_src);
-			
-			
+			pcl::fromPCLPointCloud2(mesh_src_->cloud, *cloud_src);			
 		}
 
 		ui_->textModelPath->setText(fileName);
@@ -164,11 +167,11 @@ void ManualRegistration::on_btnModel_clicked(){
 			pcl::VoxelGrid<PointT> sor;
 			sor.setInputCloud(cloud_src);
 			sor.setLeafSize(resolution_ * 2, resolution_ * 2, resolution_ * 2);
-			sor.filter(*cloud_src);
+			sor.filter(*cloud_src_sampled_);
 
-		}
+        }
 
-		
+		this->setSrcCloud(cloud_src);	
 		this->setResolution(resolution_);
 		this->cloud_src_present_ = true;
 		cloud_src_modified_ = true; // first iteration is always a new pointcloud
@@ -184,6 +187,7 @@ void ManualRegistration::on_btnScene_clicked(){
 		tr("Open Scene point cloud"),QDir::currentPath(), filters);
 
 	ManualRegistration::CloudPtr cloud_dst(new ManualRegistration::Cloud);
+	cloud_dst_sampled_.reset(new ManualRegistration::Cloud);
 	ManualRegistration::MeshPtr mesh_dst_(new ManualRegistration::Mesh);
 
 	
@@ -199,9 +203,8 @@ void ManualRegistration::on_btnScene_clicked(){
 				QMessageBox::warning(this,
 					QString("Warning"),
 					QString("Could not read .pcd model from" + fileName));
-
 			}
-			this->setDstCloud(cloud_dst);	
+			
 		}
 		else{
 			std::cout << "Loading ply from -> " << fileName.toStdString() << std::endl;
@@ -212,19 +215,18 @@ void ManualRegistration::on_btnScene_clicked(){
 					QString("Could not read .ply model from " + fileName));
 			}
 			pcl::fromPCLPointCloud2(mesh_dst_->cloud, *cloud_dst);
-			this->setDstCloud(cloud_dst);
-			
 		}
 
 		this->res_scene_ = ComputeCloudResolution(cloud_dst);
 		if (ui_->cbDownsample->isChecked()){
 			pcl::VoxelGrid<PointT> sor;
 			sor.setInputCloud(cloud_dst);
-			sor.setLeafSize(res_scene_ * 5, res_scene_ * 5, res_scene_ * 5);
-			sor.filter(*cloud_dst);
+			sor.setLeafSize(res_scene_ * 2, res_scene_ * 2, res_scene_ * 2);
+			sor.filter(*cloud_dst_sampled_);
 
 		}
 		
+		this->setDstCloud(cloud_dst);	
 		ui_->textScenePath->setText(fileName);
 		this->cloud_dst_present_ = true;
 		cloud_dst_modified_ = true; // first iteration is always a new pointcloud
@@ -350,7 +352,16 @@ void ManualRegistration::SourcePointPickCallback (const pcl::visualization::Poin
         
         std::ostringstream oss;
         oss << src_pc_->size();
-        vis_src_->addSphere<PointT>(src_point_, 5 * res_, 0, 1, 0, "sphere_src_" + oss.str());
+        vis_src_->addSphere<PointT>(src_point_, 8 * res_, 0, 1, 0, "sphere_src_" + oss.str());
+	
+	 std::stringstream ss; ss << src_pc_->points.size(); ss << " points picked";
+	vis_src_->updateText(ss.str(), 30, 150, "a");
+	vis_src_->updateText("+/-					-> Increase/decrease point size", 30, 130, "b");
+	vis_src_->updateText("shift + left click	-> Select point", 30, 110, "c");
+	vis_src_->updateText("r					-> Reset camera view", 30, 90, "d");
+	vis_src_->updateText("f					-> Zoom to point", 30, 70, "e");
+	vis_src_->updateText("t					-> Toggle color", 30, 50, "f");
+	vis_src_->updateText("n					-> Toggle normals", 30, 30, "g");
 
 //        if(vis_src_->getCloudActorMap()->find("src_pc") == vis_src_->getCloudActorMap()->end()) {
 //            // First time
@@ -402,7 +413,16 @@ void ManualRegistration::DstPointPickCallback (const pcl::visualization::PointPi
         
         std::ostringstream oss;
         oss << dst_pc_->size();
-        vis_dst_->addSphere<PointT>(dst_point_, 5 * res_, 1, 0, 0, "sphere_dst_" + oss.str());
+        vis_dst_->addSphere<PointT>(dst_point_, 8 * res_, 1, 0, 0, "sphere_dst_" + oss.str());
+	
+	 std::stringstream ss; ss << dst_pc_->points.size(); ss << " points picked";
+	vis_dst_->updateText(ss.str(), 30, 150, "a");
+	vis_dst_->updateText("+/-					-> Increase/decrease point size", 30, 130, "b");
+	vis_dst_->updateText("shift + left click	-> Select point", 30, 110, "c");
+	vis_dst_->updateText("r					-> Reset camera view", 30, 90, "d");
+	vis_dst_->updateText("f					-> Zoom to point", 30, 70, "e");
+	vis_dst_->updateText("t					-> Toggle color", 30, 50, "f");
+	vis_dst_->updateText("n					-> Toggle normals", 30, 30, "g");
 
 //        if(vis_dst_->getCloudActorMap()->find("dst_pc") == vis_dst_->getCloudActorMap()->end()) {
 //            // First time
@@ -432,11 +452,12 @@ void ManualRegistration::calculatePressed() {
         PCL_INFO ("You haven't selected an equal amount of points, please do so!\n");
         QMessageBox::warning(this,
                 QString("Warning"),
-                QString("You haven't selected an equal amount of points, please do so!"));
+                QString("You haven't selected an equal amount of points, please do so!\n" + 
+		QString("Model pts= ") + QString::number(int(src_pc_->points.size())) + QString("\nScene pts= ") + QString::number(int(dst_pc_->points.size()))));
         return;
     }
 
-    const double voxel_size =  5 * res_;
+    const double voxel_size =  10 * res_;
     const double inlier_threshold_ransac =  2 * voxel_size;
     const double inlier_threshold_icp =  2 * voxel_size;
 
@@ -526,7 +547,7 @@ void ManualRegistration::calculatePressed() {
             return;
         }
 
-        PCL_INFO("Rerunning fine ICP with an inlier threshold of %f...\n", voxel_size);
+        PCL_INFO("Rerunning fine ICP with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
         icp.setMaximumIterations(100);
         icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
         icp.align(tmp, icp.getFinalTransformation());
@@ -539,11 +560,9 @@ void ManualRegistration::calculatePressed() {
             return;
         }
         
-        PCL_INFO("Rerunning ultra-fine ICP at full resolution with an inlier threshold of %f...\n", res_);
-        icp.setInputSource(cloud_src_);
-        icp.setInputTarget(cloud_dst_);
+        PCL_INFO("Rerunning ultra-fine ICP  with an inlier threshold of %f...\n", 0.05 * inlier_threshold_icp);
         icp.setMaximumIterations(50);
-        icp.setMaxCorrespondenceDistance(res_);
+        icp.setMaxCorrespondenceDistance(0.05 * inlier_threshold_icp);
         icp.align(tmp, icp.getFinalTransformation());
 
         if(!icp.hasConverged()) {
@@ -554,10 +573,10 @@ void ManualRegistration::calculatePressed() {
             return;
         }
         
-        PCL_INFO("Rerunning ultra-ultra-fine ICP at full resolution with an inlier threshold of %f...\n", 0.5*res_);
-       // icp.setInputSource(cloud_src_);
-       // icp.setInputTarget(cloud_dst_);
-        icp.setMaximumIterations(25);
+        PCL_INFO("Rerunning fine ICP at full resolution with an inlier threshold of %f...\n", 0.5*res_);
+        icp.setInputSource(cloud_src_sampled_);
+        icp.setInputTarget(cloud_dst_sampled_);
+        icp.setMaximumIterations(15);
         icp.setMaxCorrespondenceDistance(0.5*res_);
         icp.align(tmp, icp.getFinalTransformation());
 
@@ -568,8 +587,21 @@ void ManualRegistration::calculatePressed() {
                     QString("Ultra-Ultra-fine ICP failed!"));
             return;
         }
-        fine_res  = 0.5*res_;
-        for(int i = 4; i>=1;i--)
+        
+        PCL_INFO("Rerunning Ultra-fine ICP at full resolution with an inlier threshold of %f...\n", 0.1*res_);
+        icp.setMaximumIterations(5);
+        icp.setMaxCorrespondenceDistance(0.1*res_);
+        icp.align(tmp, icp.getFinalTransformation());
+
+        if(!icp.hasConverged()) {
+            PCL_ERROR("Ultra-fine ICP failed!\n");
+            QMessageBox::warning(this,
+                    QString("Error"),
+                    QString("Ultra-Ultra-fine ICP failed!"));
+            return;
+        }
+        fine_res  = 0.1*res_;
+ /*       for(int i = 4; i>=1;i--)
 	{
 	fine_res = 0.1 *res_* i;   
 	PCL_INFO("Rerunning mega-fine ICP at full resolution with an inlier threshold of %f...\n", fine_res);
@@ -611,6 +643,7 @@ void ManualRegistration::calculatePressed() {
 	 
 	  
 	}
+	*/
         fitness_score = icp.getFitnessScore();
         PCL_INFO("ICP has converged with Fitness score = %f\n", icp.getFitnessScore());
         transform_ = icp.getFinalTransformation();
@@ -736,17 +769,17 @@ void ManualRegistration::calculatePressed() {
        
 
    // pcl::visualization::PCLVisualizer vpose("Pose visualization. Red: scene. Green: aligned object");
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> vpose (new pcl::visualization::PCLVisualizer ("Pose visualization. Red: scene. Green: aligned object"));
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> vpose (new pcl::visualization::PCLVisualizer ("Pose visualization. Green: scene. Blue: aligned object"));
     vpose->registerKeyboardCallback(&ManualRegistration::keyboardEventOccurred,*this, (void*)&vpose);
     
     vpose->addText("t -> Toggle color", 30,50);
     vpose->addText("n -> Toggle normals", 30,30);
     
     vpose->addPointCloud<PointT>(cloud_dst_,
-            pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_dst_, 255, 0, 0),
+            pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_dst_, 0, 255, 0),
             "scene");
     vpose->addPointCloud<PointT>(cloud_aligned_,
-            pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_aligned_, 0, 255, 0),
+            pcl::visualization::PointCloudColorHandlerCustom<PointT>(cloud_aligned_, 0, 0, 255),
             "aligned_object");
     vpose->spin();
 }
@@ -832,21 +865,30 @@ void ManualRegistration::clearPressed() {
     vis_src_->removeAllShapes();
     vis_dst_->removeAllShapes();
 
-	//Re-draw text in dst window
-	vis_dst_->addText("+/-					-> Increase/decrease point size", 30, 130);
-	vis_dst_->addText("shift + left click	-> Select point", 30, 110);
-	vis_dst_->addText("r					-> Reset camera view", 30, 90);
-	vis_dst_->addText("f					-> Zoom to point", 30, 70);
-	vis_dst_->addText("t					-> Toggle color", 30, 50);
-	vis_dst_->addText("n					-> Toggle normals", 30, 30);
+    std::stringstream ss;
+
+    //Re-draw text in dst window
+	ss << dst_pc_->points.size(); ss << " points picked";
+	vis_dst_->addText(ss.str(), 30, 150, "a");
+	vis_dst_->addText("+/-					-> Increase/decrease point size", 30, 130, "b");
+	vis_dst_->addText("shift + left click	-> Select point", 30, 110, "c");
+	vis_dst_->addText("r					-> Reset camera view", 30, 90, "d");
+	vis_dst_->addText("f					-> Zoom to point", 30, 70, "e");
+	vis_dst_->addText("t					-> Toggle color", 30, 50, "f");
+	vis_dst_->addText("n					-> Toggle normals", 30, 30, "g");
 
 	//Re-draw text in src window
-	vis_src_->addText("+/-					-> Increase/decrease point size", 30, 130);
-	vis_src_->addText("shift + left click	-> Select point", 30, 110);
-	vis_src_->addText("r					-> Reset camera view", 30, 90);
-	vis_src_->addText("f					-> Zoom to point", 30, 70);
-	vis_src_->addText("t					-> Toggle color", 30, 50);
-	vis_src_->addText("n					-> Toggle normals", 30, 30);
+	ss.str("");  ss << src_pc_->points.size(); ss << " points picked";
+	vis_src_->addText(ss.str(), 30, 150, "a");
+	vis_src_->addText("+/-					-> Increase/decrease point size", 30, 130, "b");
+	vis_src_->addText("shift + left click	-> Select point", 30, 110, "c");
+	vis_src_->addText("r					-> Reset camera view", 30, 90, "d");
+	vis_src_->addText("f					-> Zoom to point", 30, 70, "e");
+	vis_src_->addText("t					-> Toggle color", 30, 50, "f");
+	vis_src_->addText("n					-> Toggle normals", 30, 30, "g");
+	
+	ui_->layout_src->update();
+	ui_->layout_dst->update();
 }
 
 void ManualRegistration::applyTrfmPressed() {
@@ -882,7 +924,7 @@ void ManualRegistration::timeoutSlot () {
         vis_src_->resetCameraViewpoint("cloud_src_");
 		vis_src_->resetCamera();
 		vis_src_->removeAllCoordinateSystems();
-		vis_src_->addCoordinateSystem(100);
+		//vis_src_->addCoordinateSystem(100);
 		
         }
         cloud_src_modified_ = false;
@@ -907,14 +949,15 @@ void ManualRegistration::timeoutSlot () {
 						"cloud_dst_");
 			}
 		
-         vis_dst_->resetCameraViewpoint("cloud_dst_");
+		 vis_dst_->resetCameraViewpoint("cloud_dst_");
 		 vis_dst_->resetCamera();
 		 vis_dst_->removeAllCoordinateSystems();
-		 vis_dst_->addCoordinateSystem(100);
+		// vis_dst_->addCoordinateSystem(100);
 
         }
         cloud_dst_modified_ = false;
     }
+    
     ui_->layout_src->update();
     ui_->layout_dst->update();
     //ui_->qvtk_widget_src->update();

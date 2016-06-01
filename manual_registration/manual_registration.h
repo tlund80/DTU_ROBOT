@@ -138,6 +138,8 @@ class ManualRegistration : public QMainWindow {
 
         CloudPtr cloud_src_;
         CloudPtr cloud_dst_;
+	CloudPtr cloud_src_sampled_;
+        CloudPtr cloud_dst_sampled_;
 	CloudPtr cloud_aligned_;
 	MeshPtr mesh_src_;
 	MeshPtr mesh_dst_;
