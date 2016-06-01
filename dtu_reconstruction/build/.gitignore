@@ -1,2 +1,4 @@
 *.o
 *.cpp
+Makefile
+dtu_reconstruction
