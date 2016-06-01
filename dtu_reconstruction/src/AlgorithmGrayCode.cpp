@@ -2,6 +2,8 @@
 #include <cmath>
 #include "cvtools.h"
 
+#include "white_balance.hpp"
+
 #ifndef log2f
 #define log2f(x) (log(x)/log(2.0))
 #endif
@@ -95,7 +97,7 @@ static inline unsigned int twopowi(unsigned int exponent){
 // Algorithm
 AlgorithmGrayCode::AlgorithmGrayCode(unsigned int _screenCols, unsigned int _screenRows) : Algorithm(_screenCols, _screenRows){
 
-    Nbits = ceilf(log2f((float)screenCols)) - 1;
+    Nbits = ceilf(log2f((float)screenCols));
     N = 2 + Nbits*2;
 
     std::cout << "NBits " << Nbits << std::endl;
@@ -270,12 +272,15 @@ void AlgorithmGrayCode::get3DPoints(SMCalibrationParameters calibration, const s
    // cv::cvtColor(frames0[0], color0Rect, CV_BayerBG2RGB);
     color0Rect = frames0[0];
     cv::remap(color0Rect, color0Rect, map0X, map0Y, CV_INTER_LINEAR);
- //   cv::imwrite("/home/thso/color_stl.png", color0Rect);
+    cv::xphoto::balanceWhite(color0Rect,color0Rect,cv::xphoto::WHITE_BALANCE_SIMPLE);
+    cv::imwrite("/home/thso/color_left_stl.png", color0Rect);
 
   //    frames1[0].convertTo(color1Rect, CV_8UC1, 1.0/256.0);
   //  cv::cvtColor(frames1[0], color1Rect, CV_BayerBG2RGB);
     color1Rect = frames1[0];
     cv::remap(color1Rect, color1Rect, map1X, map1Y, CV_INTER_LINEAR);
+    cv::xphoto::balanceWhite(color1Rect,color1Rect,cv::xphoto::WHITE_BALANCE_SIMPLE);
+    cv::imwrite("/home/thso/color_right_stl.png", color1Rect);
 
     int frameRectRows = frames0Rect[0].rows;
     int frameRectCols = frames0Rect[0].cols;
@@ -486,7 +491,7 @@ void AlgorithmGrayCode::get3DPoints(SMCalibrationParameters calibration, const s
 //        cv::Vec3b c0 = getColorSubpix(color0Rect, q0Rect[i]);
 //        cv::Vec3b c1 = getColorSubpix(color1Rect, q0Rect[i]);
 
-        color[i] = 0.5*c0 + 0.5*c1;
+        color[i] = c0;// 0.5*c0 + 0.5*c1;
     }
 
     // triangulate points

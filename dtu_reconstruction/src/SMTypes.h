@@ -6,7 +6,7 @@
 #include <pcl/point_types.h>
 #include <QString>
 
-typedef pcl::PointXYZRGBA PointT;
+typedef pcl::PointXYZRGB PointT;
 typedef pcl::PointXYZRGBNormal PointNT;
 typedef pcl::PointCloud<PointT> Cloud;
 typedef pcl::PointXYZRGBNormal PointTNormal;

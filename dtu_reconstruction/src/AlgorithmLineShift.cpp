@@ -4,6 +4,9 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "white_balance.hpp"
+
+
 #ifndef log2f
 #define log2f(x) (log(x)/log(2.0))
 #endif
@@ -88,7 +91,7 @@ AlgorithmLineShift::AlgorithmLineShift(unsigned int _screenCols, unsigned int _s
     int nTotalBits = ceilf(log2f((float)screenCols));
 
     // determine the necessary Gray code bits and add some robustness
-    nGrayBits = nTotalBits - floorf(log2f((float)nLineShifts)) + 2;
+    nGrayBits = nTotalBits - floorf(log2f((float)nLineShifts)) + 3;
 
     N = 2 + 2*nGrayBits + nLineShifts;
 
@@ -229,9 +232,11 @@ void AlgorithmLineShift::get3DPoints(SMCalibrationParameters calibration, const 
     std::vector<cv::Mat> frames1Rect(N);
     for(int i=0; i<N; i++){
         cv::Mat temp;
-        cv::cvtColor(frames0[i], temp, CV_BayerBG2GRAY);
+     //   cv::cvtColor(frames0[i], temp, CV_BayerBG2GRAY);
+        cv::cvtColor(frames0[i], temp, CV_BGR2GRAY);
         cv::remap(temp, frames0Rect[i], map0X, map0Y, CV_INTER_CUBIC);
-        cv::cvtColor(frames1[i], temp, CV_BayerBG2GRAY);
+       // cv::cvtColor(frames1[i], temp, CV_BayerBG2GRAY);
+        cv::cvtColor(frames1[i], temp, CV_BGR2GRAY);
         cv::remap(temp, frames1Rect[i], map1X, map1Y, CV_INTER_CUBIC);
     }
 
@@ -242,11 +247,15 @@ void AlgorithmLineShift::get3DPoints(SMCalibrationParameters calibration, const 
 
     // color debayer and remap
     cv::Mat color0Rect, color1Rect;
-    cv::cvtColor(frames0[0], color0Rect, CV_BayerBG2RGB);
+   // cv::cvtColor(frames0[0], color0Rect, CV_BayerBG2RGB);
+    color0Rect = frames0[0];
     cv::remap(color0Rect, color0Rect, map0X, map0Y, CV_INTER_CUBIC);
+    cv::xphoto::balanceWhite(color0Rect,color0Rect,cv::xphoto::WHITE_BALANCE_SIMPLE);
 
-    cv::cvtColor(frames1[0], color1Rect, CV_BayerBG2RGB);
+    //cv::cvtColor(frames1[0], color1Rect, CV_BayerBG2RGB);
+    color1Rect = frames1[0];
     cv::remap(color1Rect, color1Rect, map1X, map1Y, CV_INTER_CUBIC);
+    cv::xphoto::balanceWhite(color1Rect,color1Rect,cv::xphoto::WHITE_BALANCE_SIMPLE);
 
     int frameRectRows = frames0Rect[0].rows;
     int frameRectCols = frames0Rect[0].cols;

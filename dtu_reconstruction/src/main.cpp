@@ -11,13 +11,19 @@
 
 #include <pcl/common/bivariate_polynomial.h>
 #include <pcl/io/ply_io.h>
+#include <pcl/io/obj_io.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
-#include <pcl/registration/gicp6d.h>
+//#include <pcl/registration/gicp6d.h>
+#include <pcl/registration/icp.h>
+#include <pcl/registration/icp_nl.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/filters/normal_refinement.h>
 #include <pcl/filters/filter.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/crop_box.h>
+#include <pcl/filters/passthrough.h>
 #include "normal_correction_manifold.h"
 
 #include <Eigen/Dense>
@@ -31,6 +37,7 @@
 #include "SMCalibrationWorker.h"
 #include "SMCalibrationParameters.h"
 #include "AlgorithmGrayCode.h"
+#include "AlgorithmLineShift.h"
 
 using namespace Eigen;
 
@@ -165,7 +172,7 @@ void loadView(QString folder_name, ViewData &single_view){
         }else if(subfolder.baseName().compare("left",Qt::CaseInsensitive) == 0){
             QString file_path = subfolder.absoluteFilePath() + "/" + file;
          //   std::cout << "Loading left from: " << file_path.toStdString() << std::endl;
-            if(num == 0)
+        /*    if(num == 0)
                 left_rgb_stereo_path = file_path.toStdString();
 
 
@@ -173,20 +180,25 @@ void loadView(QString folder_name, ViewData &single_view){
                     left_stereo_path = file_path.toStdString();
                //     std::cout << "Loading left from: " << file_path.toStdString() << std::endl;
 
-                 }else if(num < 20)
+                 }else
+*/
+            if(num < 30) //gray code = 22 //line shift = 30
                     stl_left.push_back(file_path.toStdString());
 
                      num++;
+
         }else if(subfolder.baseName().compare("right",Qt::CaseInsensitive) == 0){
                 QString file_path = subfolder.absoluteFilePath() + "/" + file;
             //    std::cout << "Loading right from: " << file_path.toStdString() << std::endl;
 
-                    if(num == 0)
+            /*        if(num == 0)
                         right_rgb_stereo_path = file_path.toStdString();
 
                     if(num == 20){
                         right_stereo_path = file_path.toStdString();
-                    }else if(num < 20)
+                    }else
+*/
+                if(num < 30)
                         stl_right.push_back(file_path.toStdString());
 
                         num++;
@@ -194,8 +206,8 @@ void loadView(QString folder_name, ViewData &single_view){
         }
      }
 
-     single_view.loadStereoTexture(left_stereo_path,right_stereo_path);
-     single_view.loadStereoRGB(left_rgb_stereo_path,right_rgb_stereo_path);
+    // single_view.loadStereoTexture(left_stereo_path,right_stereo_path);
+    // single_view.loadStereoRGB(left_rgb_stereo_path,right_rgb_stereo_path);
      single_view.loadStructuredLight(stl_left, stl_right);
      stl_left.clear();
      stl_right.clear();
@@ -431,13 +443,18 @@ pcl::PointCloud<PointNT>::Ptr reconstructSTL(ViewData &view, unsigned int view_i
     calibration.importFromXML("Calibration.xml");
    // calibration.print();
 
-    AlgorithmGrayCode* gc = new AlgorithmGrayCode(1024, 800); //1024
     std::vector<cv::Point3f> Q;
     std::vector<cv::Vec3b> color;
-
     SMFrameSequence frames = view.getSTLFramesequence();
 
-    gc->get3DPoints(calibration,frames.frames0, frames.frames1,Q,color);
+ //   AlgorithmGrayCode* gc = new AlgorithmLineShift(1024, 800); //1024
+ //   gc->get3DPoints(calibration,frames.frames0, frames.frames1,Q,color);
+ //   delete gc;
+
+    AlgorithmLineShift* ls = new AlgorithmLineShift(1024, 800); //1024
+    ls->get3DPoints(calibration,frames.frames0, frames.frames1,Q,color);
+    delete ls;
+
 
     std::cout << "Q: " << Q.size() << std::endl;
 
@@ -452,7 +469,7 @@ pcl::PointCloud<PointNT>::Ptr reconstructSTL(ViewData &view, unsigned int view_i
    for(unsigned int i=0; i<Q.size(); i++){
       PointNT point;
       point.x = Q[i].x; point.y = Q[i].y; point.z = Q[i].z;
-      point.r = color[i][0]; point.g = color[i][1]; point.b = color[i][2];
+      point.r = color[i][2]; point.g = color[i][1]; point.b = color[i][0];
       pointCloudPCL->points[i] = point;
    }
 
@@ -475,60 +492,17 @@ pcl::PointCloud<PointNT>::Ptr reconstructSTL(ViewData &view, unsigned int view_i
     resolution /= double(pointCloudPCL->size());
 
     //Estimate surface normals
-   pcl::NormalEstimationOMP<PointNT, PointNT> ne;
+    pcl::NormalEstimationOMP<PointNT, PointNT> ne;
     ne.setInputCloud (pointCloudPCL);
     pcl::search::KdTree<PointNT>::Ptr search_tree (new pcl::search::KdTree<PointNT>);
     ne.setSearchMethod (search_tree);
     ne.setRadiusSearch (5.0f * resolution);
+    //ne.useSensorOriginAsViewPoint();
     ne.setViewPoint(0,0,1);
     ne.compute (*pointCloudPCL);
 
-/*   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal> ());
-   pcl::PointCloud<pcl::Normal>::Ptr normals_refined(new pcl::PointCloud<pcl::Normal>);
 
-   // Search parameters
-   //const int k = 5;
-   std::vector<std::vector<int> > k_indices;
-   std::vector<std::vector<float> > k_sqr_distances;
-   // Run search
-   pcl::search::KdTree<PointNT> search;
-   search.setInputCloud (pointCloudPCL);
-   search.nearestKSearch (*pointCloudPCL, std::vector<int> (), k, k_indices, k_sqr_distances);
-
-   // Use search results for normal estimation
-   pcl::NormalEstimationOMP<PointNT, pcl::Normal> ne;
-     for (unsigned int i = 0; i < pointCloudPCL->size (); ++i){
-     pcl::Normal normal;
-     ne.computePointNormal (*pointCloudPCL, k_indices[i],
-                            normal.normal_x, normal.normal_y, normal.normal_z, normal.curvature);
-     pcl::flipNormalTowardsViewpoint (pointCloudPCL->at(i), 0, 0, 1,
-                                      normal.normal_x, normal.normal_y, normal.normal_z);
-     cloud_normals->push_back (normal);
-     }
-
-     std::cout << "cloud_normals " << cloud_normals->size() << std::endl;
-     // Run refinement using search results
-    // pcl::NormalRefinement<pcl::Normal> nr (k_indices, k_sqr_distances);
-    // nr.setInputCloud (cloud_normals);
-    // nr.filter (*normals_refined);
-
-     pcl::PointCloud<PointNT>::Ptr cloud_subsampled_with_normals (new pcl::PointCloud<PointNT> ());
-     pcl::concatenateFields (*pointCloudPCL, *cloud_normals, *cloud_subsampled_with_normals);
-*/
-   // if(!pointCloudPCL->empty())
-   //     covis::feature::computeCorrectedNormals(*pointCloudPCL,true,30,5*resolution);
-
-   std::stringstream ss; ss << "/home/thso/stl_"; ss << view_id; ss << ".ply";
-   pcl::PLYWriter w;
-   // Write to ply in binary without camera
-   w.write<PointNT> (ss.str(), *pointCloudPCL, true, false);
- //  pcl::io::savePLYFileBinary(ss.str(), *pointCloudPCL);
-   std::cout << ".....Done!!" << std::endl;
-
-
-  delete gc;
-
-   return pointCloudPCL;
+    return pointCloudPCL;
 }
 
 std::vector<Affine3f> loadRobotPoses(QString path){
@@ -581,6 +555,33 @@ std::vector<Affine3f> loadRobotPoses(QString path){
     return T;
 }
 
+double computeResolution(CloudNormal::Ptr cloud){
+
+
+        //Compute cloud resolution for each sub scan
+         pcl::search::KdTree<PointNT> s;
+         const int k = 5;
+         std::vector<std::vector<int> > idx;
+         std::vector<std::vector<float> > distsq;
+
+         s.setInputCloud(cloud);
+         s.nearestKSearch(*cloud, std::vector<int>(), 5, idx, distsq);
+         double resolution = 0.0f;
+         for(size_t i = 0; i < cloud->size(); ++i) {
+             double resi = 0.0f;
+             for(int j = 1; j < k; ++j)
+                 resi += sqrtf(distsq[i][j]);
+             resi /= double(k - 1);
+             resolution += resi;
+         }
+         resolution /= double(cloud->size());
+
+
+    std::cout << "Cloud resolution: " << resolution << std::endl;
+    return resolution;
+
+}
+
 cv::Mat loadHandEye(QString path)
 {
     int _validImgs;
@@ -620,17 +621,71 @@ cv::Mat loadHandEye(QString path)
 
 }
 
+
+Eigen::Matrix4f readMatrix(QString filename){
+    QFile file(filename);
+    if(!file.open(QIODevice::ReadOnly)) {
+ //       pcl::console::print_error("%s\n", file.errorString().toStdString());
+    }
+
+    QTextStream in(&file);
+    std::vector<double> data;
+    while(!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(" ");
+        fields.removeAll("");
+        foreach(QString str, fields){
+            data.push_back(str.toDouble());
+        }
+    }
+
+    file.close();
+    Eigen::Matrix4f result = Eigen::Matrix4f::Identity();
+    result << data[0], data[1], data[2],data[3],
+              data[4],data[5],data[6],data[7],
+              data[8],data[9],data[10],data[11],
+              data[12],data[13],data[14],data[15];
+
+    return result;
+
+}
+
+
 void alignKinectScene(QString base_path){
+
+  //  pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
 
     //Load robot poses
     std::stringstream ss; ss << base_path.toStdString(); ss << "robot_positions.txt";
     std::vector<Affine3f> poses = loadRobotPoses(QString::fromStdString(ss.str()));
 
+    //Load the corresponding stl_world scene
+    CloudNormal::Ptr cloud_full_stl (new CloudNormal);
+    pcl::PLYReader ply_reader;
+    ss.str(""); ss << base_path.toStdString(); ss << "full_stl.ply";
+    std::cout << "Loading: " << ss.str() << std::endl;
+    if(ply_reader.read(ss.str(),*cloud_full_stl) < 0){
+        pcl::console::print_error("Could not load full point cloud. Make sure to align the stl clouds before kinect!!");// << ss.str());
+        return;
+    }
+
+
     std::vector<CloudPtr > clouds;
-    std::vector<CloudPtr > cloudsT;
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsInitial;
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsICP;
+
+     Matrix3f rot_color2Ir =  Matrix3f::Identity();
+     rot_color2Ir<< 9.9999556395900735e-01, 2.9693376835843075e-03, 2.3472543028155737e-04,
+                    -2.9681013242091147e-03, 9.9998257512681676e-01, -5.1029224244224982e-03,
+                    -2.4987364007190722e-04, 5.1022030987889991e-03, 9.9998695245823221e-01;
+     Affine3f color2ir = Affine3f::Identity();
+    color2ir.translation() << -5.2011890662796961e-02, 3.3168926537064601e-04, -1.1583846472618690e-03;
+    color2ir.rotate(rot_color2Ir);
+
+    std::cout << "color to ir transform: \n" << color2ir.matrix() << std::endl;
 
     //Load Hand eye transform
-   cv::Mat handeye = loadHandEye("/home/thso/DTU_ROBOT/dtu_reconstruction/build/Kinect_he_alignment.yml");
+   cv::Mat handeye = loadHandEye("Kinect_he_alignment.yml");
    Affine3f he = Affine3f::Identity();
    he.translation() << static_cast<float>(handeye.at<double>(0,3)), static_cast<float>(handeye.at<double>(1,3)), static_cast<float>(handeye.at<double>(2,3));
 
@@ -660,36 +715,301 @@ void alignKinectScene(QString base_path){
     std::cout << "Loading: " << ss.str() << std::endl;
     if(reader.read(ss.str(),*cloud));
        clouds.push_back(cloud);
-
-    view_id++;
-   }
-
+ //  }
    //Rough alignment utilizing the robot poses
-   for(size_t i = 0; i < clouds.size (); ++i){
-       CloudPtr source = clouds[i];
-
-       Affine3f T_rob = poses[i];
-       Matrix4f T_align = T_rob.matrix() * he.matrix();
-       std::cout << "----------------------------------\n" << std::endl;
-       std::cout << T_align << std::endl;
-       std::cout << "----------------------------------\n" << std::endl;
-       pcl::transformPointCloud(*source,*source,T_align);
+ //  for(size_t i = 0; i < clouds.size (); ++i){
+       CloudPtr source = cloud;//clouds[i];
 
        //Remove Nans
        std::vector<int> indices;
        pcl::removeNaNFromPointCloud(*source, *source, indices);
 
-       cloudsT.push_back(source);
+        CloudPtr cloud_scaled(new Cloud);
+        for(size_t j = 0; j < source->size();++j){
+           pcl::PointXYZRGB p = source->points[j];
+           p.x = p.x * 1000.0f;
+           p.y = p.y * 1000.0f;
+           p.z = p.z * 1000.0f;
+           cloud_scaled->points.push_back(p);
+        }
 
-       //Save transformed model
-       pcl::PLYWriter writer;
-       ss.str(""); ss << "/home/thso"; ss << "/kinect_world_"; ss << i; ss << ".ply";
-       std::cout << "Saving: " << ss.str() << std::endl;
-       writer.write(ss.str(),*source);
+        //Compute normals
+        //Estimate surface normals
+        pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
+        pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
+        ne.setInputCloud (cloud_scaled);
+        ne.setSearchSurface(cloud_scaled);
+        pcl::search::KdTree<PointT>::Ptr search_tree (new pcl::search::KdTree<PointT>);
+        ne.setSearchMethod (search_tree);
+        ne.setKSearch(10);
+        ne.setViewPoint(0,0,1);
+        ne.compute(*cloud_normals);
+        CloudNormal::Ptr cloud_n (new CloudNormal);
+        pcl::concatenateFields<PointT, pcl::Normal, PointNT>(*cloud_scaled, *cloud_normals, *cloud_n);
+
+       Affine3f T_rob = poses[view_id];
+       Matrix4f T_align = T_rob.matrix() * he.matrix() * color2ir.matrix();
+       pcl::transformPointCloudWithNormals(*cloud_n,*cloud_n,T_align);
+
+       // Remove robot and walls from the scene
+       pcl::PassThrough<PointNT> pass;
+       pass.setInputCloud(cloud_n);
+       pass.setFilterFieldName("y");
+       pass.setFilterLimits(-400, 400);
+       pass.filter(*cloud_n);
+       pass.setInputCloud(cloud_n);
+       pass.setFilterFieldName("x");
+       pass.setFilterLimits(350, 700);
+       pass.filter(*cloud_n);
+
+       pass.setInputCloud(cloud_n);
+       pass.setFilterFieldName("z");
+       pass.setFilterLimits(-200, 250);
+       pass.filter(*cloud_n);
+
+       cloudsInitial.push_back(cloud_n);
+
+       pcl::IterativeClosestPoint<PointTNormal,PointTNormal> icp;
+       double res = computeResolution(cloud_n);
+       const double voxel_size =  5 * res;
+       const float inlier_threshold_icp = 10 * res;
+
+
+       CloudNormal::Ptr source_ds(new CloudNormal);
+       CloudNormal::Ptr target_ds(new CloudNormal);
+
+       //Downsample clouds
+       pcl::VoxelGrid<PointTNormal> vg;
+       vg.setInputCloud(cloud_n);
+       vg.setLeafSize(voxel_size, voxel_size, voxel_size);
+       vg.filter(*source_ds);
+
+       vg.setInputCloud(cloud_full_stl);
+       vg.filter(*target_ds);
+
+
+       PCL_INFO("Refining pose using ICP with an inlier threshold of %f...\n", inlier_threshold_icp);
+       CloudNormal tmp;
+       icp.setInputSource(source_ds);
+       icp.setInputTarget(target_ds);
+       icp.setMaximumIterations(50);
+       icp.setMaxCorrespondenceDistance(inlier_threshold_icp);
+       icp.align(tmp);
+
+       if(!icp.hasConverged()) {
+            PCL_ERROR("ICP failed!\n");
+            return;
+        }
+
+        PCL_INFO("Rerunning fine ICP at with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+        icp.setMaximumIterations(25);
+        icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
+        icp.align(tmp, icp.getFinalTransformation());
+
+       if(!icp.hasConverged()) {
+           PCL_ERROR("Fine ICP failed!\n");
+           return;
+       }
+
+        PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.05 * inlier_threshold_icp);
+        icp.setInputSource(cloud_n);
+        icp.setInputTarget(cloud_full_stl);
+        icp.setMaximumIterations(3);
+        icp.setMaxCorrespondenceDistance(0.05 * inlier_threshold_icp);
+        icp.align(tmp, icp.getFinalTransformation());
+
+       if(!icp.hasConverged()) {
+           PCL_ERROR("Fine ICP failed!\n");
+           return;
+       }
+
+       PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.01 * inlier_threshold_icp);
+       icp.setMaximumIterations(3);
+       icp.setMaxCorrespondenceDistance(0.01 * inlier_threshold_icp);
+       icp.align(tmp, icp.getFinalTransformation());
+
+      if(!icp.hasConverged()) {
+          PCL_ERROR("Fine ICP failed!\n");
+          return;
+      }
+
+      PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.005 * inlier_threshold_icp);
+      icp.setMaximumIterations(5);
+      icp.setMaxCorrespondenceDistance(0.005 * inlier_threshold_icp);
+      icp.align(tmp, icp.getFinalTransformation());
+
+      if(!icp.hasConverged()) {
+         PCL_ERROR("Fine ICP failed!\n");
+         return;
+     }
+
+        pcl::transformPointCloudWithNormals(*cloud_n,*cloud_n,icp.getFinalTransformation());
+        //Save transformed model
+        pcl::PLYWriter writer;
+        ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/kinect_world_"; ss << view_id; ss << ".ply";
+        std::cout << "Saving: " << ss.str() << std::endl;
+        writer.write(ss.str(),*cloud_n,true,false);
+
+
+        Eigen::Matrix4f final = T_align * icp.getFinalTransformation();
+        //TODO: float rms_ = computeRMSError(local_object_aligned_, scene_xx, "nn");
+       //Save alignment transform -> world frame = stl_frame. final is the transformation required to align each kinect with the full stl scene used for gt annotation
+       ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/kinect_to_world_trfm_"; ss << view_id; ss << ".txt";
+       std::cout << "Saving alignment trasform: " << ss.str() << std::endl;
+       std::ofstream file(ss.str());
+       if (file.is_open())
+           file << final;
+
+       file.close();
+
+       //Save kinect clouds in stl sensor frame to have the same ground truth
+       //First load the stl transformation
+        ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/stl_to_world_trfm_"; ss << view_id; ss << ".txt";
+        Matrix4f T_stl = readMatrix(QString::fromStdString(ss.str()));
+       //Transform cloud
+       Matrix4f T_inv = T_stl.inverse();
+       pcl::transformPointCloudWithNormals(*cloud_n,*cloud_n,T_inv);
+       ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/kinect_"; ss << view_id; ss << ".ply";
+       std::cout << "Transforming kinect cloud back to sensor frame and saving: " << ss.str() << std::endl;
+       writer.write(ss.str(),*cloud_n,true,false);
+
+       std::cout << std::endl;
+
+       view_id++;
+
    }
 
+ /*  pcl::IterativeClosestPoint<PointTNormal,PointTNormal> icp;
+   CloudNormal::Ptr target = cloudsInitial[0];
+   for (size_t j = 1; j < cloudsInitial.size (); ++j){
+           CloudNormal::Ptr source = cloudsInitial[j];
+
+           CloudNormal::Ptr source_ds(new CloudNormal);
+           CloudNormal::Ptr target_ds(new CloudNormal);
+           CloudNormal tmp;
+
+           assert(!source->empty());
+           assert(!target->empty());
+
+           const double voxel_size =  5 * computeResolution(source);
+
+           //Downsample clouds
+           pcl::VoxelGrid<PointTNormal> vg;
+           vg.setInputCloud(source);
+           vg.setLeafSize(voxel_size, voxel_size, voxel_size);
+           vg.filter(*source_ds);
+
+           vg.setInputCloud(target);
+           vg.filter(*target_ds);
+
+           const float inlier_threshold_icp = 5 * computeResolution(source_ds);
+
+           PCL_INFO("Refining pose using ICP with an inlier threshold of %f...\n", inlier_threshold_icp);
+           icp.setInputSource(source_ds);
+           icp.setInputTarget(target_ds);
+           icp.setMaximumIterations(200);
+           //icp.setEuclideanFitnessEpsilon(1e9);
+           //icp.setTransformationEpsilon(1e9);
+           icp.setMaxCorrespondenceDistance(inlier_threshold_icp);
+           icp.align(tmp);
 
 
+          // PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+            if(!icp.hasConverged()) {
+               PCL_ERROR("ICP failed!\n");
+           return;
+           }
+
+            PCL_INFO("Rerunning ICP with an inlier threshold of %f...\n", 0.5 * inlier_threshold_icp);
+            icp.setMaximumIterations(50);
+            icp.setMaxCorrespondenceDistance(0.5 * inlier_threshold_icp);
+            icp.align(tmp, icp.getFinalTransformation());
+
+           //  PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+            if(!icp.hasConverged()) {
+                PCL_ERROR("Fine ICP failed!\n");
+                return;
+            }
+
+            PCL_INFO("Rerunning fine ICP at with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+        //    icp.setInputSource(source);
+        //    icp.setInputTarget(cloud_dst_);
+            icp.setMaximumIterations(25);
+            icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
+            icp.align(tmp, icp.getFinalTransformation());
+
+        //    PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+           if(!icp.hasConverged()) {
+               PCL_ERROR("Fine ICP failed!\n");
+               return;
+           }
+
+            PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.05 * inlier_threshold_icp);
+            icp.setInputSource(source);
+            icp.setInputTarget(target);
+            icp.setMaximumIterations(25);
+            icp.setMaxCorrespondenceDistance(0.05 * inlier_threshold_icp);
+            icp.align(tmp, icp.getFinalTransformation());
+
+          //  PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+           if(!icp.hasConverged()) {
+               PCL_ERROR("Fine ICP failed!\n");
+               return;
+           }
+
+
+           PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.01 * inlier_threshold_icp);
+           icp.setInputSource(source);
+           icp.setInputTarget(target);
+           icp.setMaximumIterations(10);
+           icp.setMaxCorrespondenceDistance(0.01 * inlier_threshold_icp);
+           icp.align(tmp, icp.getFinalTransformation());
+
+         //  PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+          if(!icp.hasConverged()) {
+              PCL_ERROR("Fine ICP failed!\n");
+              return;
+          }
+
+          PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.005 * inlier_threshold_icp);
+          icp.setInputSource(source);
+          icp.setInputTarget(target);
+          icp.setMaximumIterations(10);
+          icp.setMaxCorrespondenceDistance(0.005 * inlier_threshold_icp);
+          icp.align(tmp, icp.getFinalTransformation());
+
+        //  PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+         if(!icp.hasConverged()) {
+             PCL_ERROR("Fine ICP failed!\n");
+             return;
+         }
+
+
+            Matrix4f transform_ = Matrix4f::Identity();
+           transform_ = icp.getFinalTransformation();
+
+
+           CloudNormal::Ptr cloud_aligned_ (new CloudNormal);
+           pcl::transformPointCloud<PointTNormal>(*source, *cloud_aligned_, transform_);
+           cloudsICP.push_back(cloud_aligned_);
+
+           pcl::PLYWriter writer;
+           ss.str(""); ss << "/home/thso"; ss << "/kinect_align_src"; ss << j; ss << ".ply";
+           std::cout << "Saving: " << ss.str() << std::endl;
+           writer.write(ss.str(),*cloud_aligned_);
+
+
+           *target += *cloud_aligned_;
+
+   }
+
+   pcl::PLYWriter writer;
+   ss.str(""); ss << base_path.toStdString(); ss << "kinect_full.ply";
+   std::cout << "Saving: " << ss.str() << std::endl;
+   writer.write(ss.str(),*target,true,false);
+*/
+
+  // pcl::console::setVerbosityLevel(pcl::console::L_INFO);
 }
 
 void alignSTLScene(QString base_path){
@@ -698,7 +1018,8 @@ void alignSTLScene(QString base_path){
     std::vector<Affine3f> poses = loadRobotPoses(QString::fromStdString(ss.str()));
 
     std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > clouds;
-    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsT;
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsInitial;
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsICP;
 
     double scan_resolution = 0.0f;
 
@@ -707,20 +1028,6 @@ void alignSTLScene(QString base_path){
     QFileInfoList views = view_directory.entryInfoList();
 
     assert(poses.size() == views.size());
-
-    unsigned int view_id= 0;
-    /// Loops through the found views Pos_xx
-    foreach(const QFileInfo &view, views) {
-     //Load .ply files
-     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-     pcl::PLYReader reader;
-     std::stringstream ss; ss << view.absoluteFilePath().toStdString(); ss << "/stl_"; ss << view_id; ss << ".ply";
-     std::cout << "Loading: " << ss.str() << std::endl;
-     if(reader.read(ss.str(),*cloud));
-        clouds.push_back(cloud);
-
-     view_id++;
-    }
 
     //Rough alignment utilizing the robot poses
     Affine3f he = Affine3f::Identity();
@@ -731,47 +1038,176 @@ void alignSTLScene(QString base_path){
     Quaternionf f = rollAngle*pitchAngle*yawAngle;
     he.rotate (f);
 
-    //std::cout << "Hand eye transform: \n" << he.matrix() << std::endl;
+    //Load Hand eye transform
+    /*cv::Mat handeye = loadHandEye("stereo_he_alignment.yml");
+    Affine3f he = Affine3f::Identity();
+    he.translation() << static_cast<float>(handeye.at<double>(0,3)), static_cast<float>(handeye.at<double>(1,3)), static_cast<float>(handeye.at<double>(2,3));
 
-    for(size_t i = 1; i < clouds.size (); ++i){
-        CloudNormal::Ptr source = clouds[i];
+    Matrix3f rot =  Matrix3f::Identity();
+    rot<< static_cast<float>(handeye.at<double>(0,0)), static_cast<float>(handeye.at<double>(0,1)), static_cast<float>(handeye.at<double>(0,2)),
+         static_cast<float>(handeye.at<double>(1,0)), static_cast<float>(handeye.at<double>(1,1)), static_cast<float>(handeye.at<double>(1,2)),
+         static_cast<float>(handeye.at<double>(2,0)), static_cast<float>(handeye.at<double>(2,1)), static_cast<float>(handeye.at<double>(2,2));
 
-        Affine3f T_rob = poses[i];
+    he.rotate(rot);
+*/
+    std::cout << "Hand eye transform loaded: \n" << he.matrix() << std::endl;
+
+    unsigned int view_id= 0;
+    std::vector<QString> base_paths;
+    /// Loops through the found views Pos_xx
+    foreach(const QFileInfo &view, views) {
+        //Load .ply files
+        pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+        pcl::PLYReader reader;
+        std::stringstream ss; ss << view.absoluteFilePath().toStdString(); ss << "/stl_"; ss << view_id; ss << ".ply";
+        std::cout << "Loading: " << ss.str() << std::endl;
+        if(reader.read(ss.str(),*cloud) < 0){
+            pcl::console::print_error("Could not load point cloud ");// << ss.str());
+            return;
+        }
+
+        clouds.push_back(cloud);
+
+        //Align cloud to world coordinate system
+        CloudNormal::Ptr source = cloud;
+        Affine3f T_rob = poses[view_id];
         Matrix4f T_align = T_rob.matrix() * he.matrix();
-        pcl::transformPointCloud(*source,*source,T_align);
-        cloudsT.push_back(source);
+        pcl::transformPointCloudWithNormals(*source,*source,T_align);
+        cloudsInitial.push_back(source);
 
-        //Compute cloud resolution for each sub scan
-         pcl::search::KdTree<PointNT> s;
-         const int k = 5;
-         std::vector<std::vector<int> > idx;
-         std::vector<std::vector<float> > distsq;
-
-         s.setInputCloud(source);
-         s.nearestKSearch(*source, std::vector<int>(), 5, idx, distsq);
-         double resolution = 0.0f;
-         for(size_t i = 0; i < source->size(); ++i) {
-             double resi = 0.0f;
-             for(int j = 1; j < k; ++j)
-                 resi += sqrtf(distsq[i][j]);
-             resi /= double(k - 1);
-             resolution += resi;
-         }
-         resolution /= double(source->size());
-         std::cout << "resolution: " << resolution << std::endl;
-         scan_resolution += resolution;
-
-         //Save transformed model
+        base_paths.push_back(view.absoluteFilePath());
+        //Save transformed model
         pcl::PLYWriter writer;
-        ss.str(""); ss << "/home/thso"; ss << "/stl_world_"; ss << i; ss << ".ply";
-        std::cout << "Saving: " << ss.str() << std::endl;
-        writer.write(ss.str(),*source);
+        ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/stl_world_"; ss << view_id; ss << ".ply";
+        std::cout << "Saving aligned cloud: " << ss.str() << std::endl;
+        writer.write(ss.str(),*source,true,false);
+
+        //Save alignment transform
+        ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/stl_to_world_trfm_"; ss << view_id; ss << ".txt";
+        std::cout << "Saving alignment trasform: " << ss.str() << std::endl;
+        std::ofstream file(ss.str());
+        if (file.is_open())
+            file << T_align;
+
+        file.close();
+
+        std::cout << std::endl;
+        view_id++;
     }
 
-    scan_resolution /= double(clouds.size());
 
-    std::cout << "scan_resolution: " << scan_resolution << std::endl;
-    for (size_t j = 2; j < cloudsT.size (); ++j){
+    pcl::IterativeClosestPoint<PointTNormal,PointTNormal> icp;
+    CloudNormal::Ptr target = cloudsInitial[0];
+    for (size_t j = 2; j < cloudsInitial.size (); ++j){
+            CloudNormal::Ptr source = cloudsInitial[j];
+
+            CloudNormal::Ptr source_ds(new CloudNormal);
+            CloudNormal::Ptr target_ds(new CloudNormal);
+            CloudNormal tmp;
+
+            assert(!source->empty());
+            assert(!target->empty());
+
+            const double voxel_size =  5 * computeResolution(source);
+
+            //Downsample clouds
+            pcl::VoxelGrid<PointTNormal> vg;
+            vg.setInputCloud(source);
+            vg.setLeafSize(voxel_size, voxel_size, voxel_size);
+            vg.filter(*source_ds);
+
+            vg.setInputCloud(target);
+            vg.filter(*target_ds);
+
+            const float inlier_threshold_icp = 5 * computeResolution(source_ds);
+
+            PCL_INFO("Refining pose using ICP with an inlier threshold of %f...\n", inlier_threshold_icp);
+            icp.setInputSource(source_ds);
+            icp.setInputTarget(target_ds);
+            icp.setMaximumIterations(100);
+            //icp.setEuclideanFitnessEpsilon(1e9);
+            //icp.setTransformationEpsilon(1e9);
+            icp.setMaxCorrespondenceDistance(inlier_threshold_icp);
+            icp.align(tmp);
+
+
+           // PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+             if(!icp.hasConverged()) {
+                PCL_ERROR("ICP failed!\n");
+            return;
+            }
+
+             PCL_INFO("Rerunning ICP with an inlier threshold of %f...\n", 0.5 * inlier_threshold_icp);
+             icp.setMaximumIterations(50);
+             icp.setMaxCorrespondenceDistance(0.5 * inlier_threshold_icp);
+             icp.align(tmp, icp.getFinalTransformation());
+
+            //  PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+             if(!icp.hasConverged()) {
+                 PCL_ERROR("Fine ICP failed!\n");
+                 return;
+             }
+
+             PCL_INFO("Rerunning fine ICP at with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+         //    icp.setInputSource(source);
+         //    icp.setInputTarget(cloud_dst_);
+             icp.setMaximumIterations(25);
+             icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
+             icp.align(tmp, icp.getFinalTransformation());
+
+         //    PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+            if(!icp.hasConverged()) {
+                PCL_ERROR("Fine ICP failed!\n");
+                return;
+            }
+
+             PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.05 * inlier_threshold_icp);
+             icp.setInputSource(source);
+             icp.setInputTarget(target);
+             icp.setMaximumIterations(5);
+             icp.setMaxCorrespondenceDistance(0.05 * inlier_threshold_icp);
+             icp.align(tmp, icp.getFinalTransformation());
+
+           //  PCL_INFO("\tFitness score = %f\n", icp.getFitnessScore());
+            if(!icp.hasConverged()) {
+                PCL_ERROR("Fine ICP failed!\n");
+                return;
+            }
+
+             Matrix4f transform_ = Matrix4f::Identity();
+            transform_ = icp.getFinalTransformation();
+
+
+            CloudNormal::Ptr cloud_aligned_ (new CloudNormal);
+            pcl::transformPointCloud<PointTNormal>(*source, *cloud_aligned_, transform_);
+            cloudsICP.push_back(cloud_aligned_);
+
+        /*    pcl::PLYWriter writer;
+            ss.str(""); ss << "/home/thso"; ss << "/stl_align_src"; ss << j; ss << ".ply";
+            std::cout << "Saving: " << ss.str() << std::endl;
+                        writer.write(ss.str(),*cloud_aligned_,true,false);
+                        */
+
+       /*     pcl::PLYWriter writer;
+            ss.str(""); ss << "/home/thso"; ss << "/stl_align_src"; ss << j; ss << ".ply";
+            std::cout << "Saving: " << ss.str() << std::endl;
+            writer.write(ss.str(),*cloud_aligned_,true,false);
+
+            ss.str(""); ss << "/home/thso"; ss << "/stl_align_tar"; ss << j; ss << ".ply";
+            std::cout << "Saving: " << ss.str() << std::endl;
+            writer.write(ss.str(),*target,true,false);
+*/
+            *target += *cloud_aligned_;
+
+    }
+
+    pcl::PLYWriter writer;
+    ss.str(""); ss << base_path.toStdString(); ss << "full_stl"; ss << ".ply";
+    std::cout << "Saving: " << ss.str() << std::endl;
+    writer.write(ss.str(),*target,true,false);
+
+
+  /*  for (size_t j = 2; j < cloudsT.size (); ++j){
         CloudNormal::Ptr source = cloudsT[j];
         CloudNormal::Ptr target = cloudsT[j-1];
 
@@ -797,7 +1233,7 @@ void alignSTLScene(QString base_path){
            return;
         }
   */
-        ss.str(""); ss << "/home/thso"; ss << "/src_"; ss << j; ss << ".ply";
+  /*      ss.str(""); ss << "/home/thso"; ss << "/src_"; ss << j; ss << ".ply";
         pcl::io::savePLYFile(ss.str(),*source);
         ss.str(""); ss << "/home/thso"; ss << "/tar_"; ss << j; ss << ".ply";
         pcl::io::savePLYFile(ss.str(),*target);
@@ -851,7 +1287,7 @@ void alignSTLScene(QString base_path){
         pcl::PLYWriter writer;
         ss.str(""); ss << "/home/thso"; ss << "/stl_align_"; ss << j; ss << ".ply";
         std::cout << "Saving: " << ss.str() << std::endl;
-        writer.write(ss.str(),*cloud_aligned_);
+        writer.write(ss.str(),*cloud_aligned_,true,false);
 
     }
 
@@ -897,7 +1333,8 @@ int main(int argc, char *argv[])
     QRegExp argsSingle("-single");
     QRegExp argsStereo("-stereo");
     QRegExp argsStl("-stl");
-    QRegExp argsFolder("-folder");
+    QRegExp argsKinect("-kinect");
+    QRegExp argsReconstruct("-reconstruct");
     QRegExp argsCalib("-calibrate");
     QRegExp argsAlign("-align");
 
@@ -906,9 +1343,55 @@ int main(int argc, char *argv[])
     bool reconstruct_all = false;
     bool reconstruct_single = false;
     bool reconstruct_stereo = false;
-    bool reconstruct_stl = false;
+    bool stl = false;
+    bool kinect = false;
     bool calibrate = false;
     bool align = false;
+    bool reconstruct = false;
+
+    //Test
+  /*  unsigned int screenCols = 1024;
+    unsigned int screenRows = 800;
+    std::vector<cv::Mat> patterns;
+    int nGrayBits;
+    int nLineShifts = 8;
+
+    int nTotalBits = ceilf(log2f((float)screenCols));
+
+   // determine the necessary Gray code bits and add some robustness
+   nGrayBits = nTotalBits - floorf(log2f((float)nLineShifts)) + 2;
+
+   unsigned int N = 2 + 2*nGrayBits + nLineShifts;
+
+
+   // line shifts
+        for(unsigned int p=0; p<nLineShifts; p++){
+            cv::Mat pattern(1, screenCols, CV_8UC3, cv::Scalar(0));
+
+       //     for(unsigned int k = 0; k<screenRows; k++){
+                for(unsigned int j=p; j<screenCols; j+= nLineShifts){
+                   // std::cout << " " << j << " ";//<< std::endl;
+                    pattern.at<cv::Vec3b>(0, j) = cv::Vec3b(255, 255, 255);
+                }
+                   //std::cout << std::endl;
+                   //std::cout << std::endl;
+                   //std::cout << std::endl;
+            //}
+std::cout << " " << pattern << std::endl;
+            patterns.push_back(pattern);
+        }
+
+   for(unsigned int i=0; i<patterns.size(); i++){
+       std::stringstream ss; ss << "/home/thso/thoso_test/line_shift/img_"; ss << i; ss << ".png";
+       std::cout << "save pattern " << i << std::endl;
+
+       cv::imwrite(ss.str(), patterns[i]);
+
+   }
+  std::cout << "FINISH!!!!!!!" << std::endl;
+*/
+
+
 
     //Parse command line arguments
     for (int i = 1; i < args.size(); ++i){
@@ -923,9 +1406,12 @@ int main(int argc, char *argv[])
         }else if (argsStereo.indexIn(args.at(i)) != -1 ){
             reconstruct_stereo = true;
         }else if (argsStl.indexIn(args.at(i)) != -1 ){
-            reconstruct_stl = true;
-        }else if (argsFolder.indexIn(args.at(i)) != -1 ){
+            stl = true;
+        }else if (argsKinect.indexIn(args.at(i)) != -1 ){
+            kinect = true;
+        }else if (argsReconstruct.indexIn(args.at(i)) != -1 ){
             folder_name = args.at(i+1);
+            reconstruct = true;
         }else if (argsAlign.indexIn(args.at(i)) != -1 ){
              folder_name = args.at(i+1);
              align = true;
@@ -989,7 +1475,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if(reconstruct_stl && reconstruct_single){
+    if(stl && reconstruct){
         QDir view_directory(folder_name);
         view_directory.setFilter(QDir::AllDirs | QDir::NoDotAndDotDot | QDir::NoSymLinks);
         QFileInfoList views = view_directory.entryInfoList();
@@ -1019,11 +1505,56 @@ int main(int argc, char *argv[])
 
     }
 
+      if(kinect && reconstruct){
+           std::cout << "Kinect data is already reconstructed.......saving and scaling as .pcd .ply!!!" << std::endl;
+          //Load kinect clouds
+          QDir view_directory(folder_name);
+          view_directory.setFilter(QDir::AllDirs | QDir::NoDotAndDotDot | QDir::NoSymLinks);
+          QFileInfoList views = view_directory.entryInfoList();
+
+          unsigned int view_id= 0;
+          /// Loops through the found views Pos_xx
+          foreach(const QFileInfo &view, views) {
+           //Load .ply files
+           Cloud::Ptr cloud(new Cloud);
+           pcl::PCDReader reader;
+           std::stringstream ss_pcd; ss_pcd << view.absoluteFilePath().toStdString(); ss_pcd << "/kinect/kinect_cloud.pcd";
+           std::cout << "Loading: " << ss_pcd.str() << std::endl;
+           if(reader.read(ss_pcd.str(),*cloud) == 0){
+
+               std::vector<int> indices;
+               pcl::removeNaNFromPointCloud(*cloud, *cloud, indices);
+
+               //Remove Nans
+                CloudPtr cloud_scaled(new Cloud);
+                for(size_t j = 0; j < cloud->size();++j){
+                   pcl::PointXYZRGB p = cloud->points[j];
+                   p.x = p.x * 1000.0f;
+                   p.y = p.y * 1000.0f;
+                   p.z = p.z * 1000.0f;
+                   cloud_scaled->points.push_back(p);
+                }
+
+               std::stringstream ss;
+               ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/kinect/kinect_"; ss << view_id; ss <<".ply";
+               std::cout << "Saving: " << ss.str() << std::endl;
+               pcl::PLYWriter w;
+               w.write<PointT> (ss.str(), *cloud_scaled, true, false);
+           }
+
+
+           view_id++;
+          }
+
+          return 0;
+      }
+
     //Align STL scene
-    if(align){
+    if(align && stl)
         alignSTLScene(folder_name);
-      //  alignKinectScene(folder_name);
-    }
+    if(align && kinect)
+        alignKinectScene(folder_name);
+
 
 
    /* else{

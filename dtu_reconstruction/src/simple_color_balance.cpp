@@ -42,14 +42,13 @@
 #include <iterator>
 #include <iostream>
 
-#include "opencv2/xphoto.hpp"
+#include  "white_balance.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 
-#include "opencv2/imgproc.hpp"
-
-#include "opencv2/core.hpp"
+#include "opencv2/core/core.hpp"
 #include "opencv2/core/core_c.h"
 
-#include "opencv2/core/types.hpp"
+//#include "opencv2/core/types.hpp"
 #include "opencv2/core/types_c.h"
 
 namespace cv

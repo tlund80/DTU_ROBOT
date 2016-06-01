@@ -150,10 +150,11 @@ void SMCalibrationWorker::performCalibration(std::vector<SMCalibrationSet> calib
     int flags_stereo = cv::CALIB_FIX_INTRINSIC;// + cv::CALIB_FIX_K2 + cv::CALIB_FIX_K3 + cv::CALIB_ZERO_TANGENT_DIST + cv::CALIB_FIX_PRINCIPAL_POINT + cv::CALIB_FIX_ASPECT_RATIO;
     cv::Mat E, F, R1, T1;
 
-    #ifdef CV_VERSION < 3
-    cal.stereo_error = cv::stereoCalibrate(QStereo, qc0Stereo, qc1Stereo, cal.K0, cal.k0, cal.K1, cal.k1,
+    #ifdef CV_MAJOR_VERSION=3
+     cal.stereo_error = cv::stereoCalibrate(QStereo, qc0Stereo, qc1Stereo, cal.K0, cal.k0, cal.K1, cal.k1,
                                               frameSize, R1, T1, E, F,flags_stereo,
                                               cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 200, DBL_EPSILON));
+
     #else
     cal.stereo_error = cv::stereoCalibrate(QStereo, qc0Stereo, qc1Stereo, cal.K0, cal.k0, cal.K1, cal.k1,
                                               frameSize, R1, T1, E, F,
