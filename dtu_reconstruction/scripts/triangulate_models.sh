@@ -9,7 +9,7 @@ for dir in $dirlist
 do
  #  echo ${dir##*/}
    scene_name=${dir##*/} 
-   echo "execute: dti_triangulation $base_path/$scene_name/full/poisson_sampling_pca.ply  $base_path/$scene_name/full/"$scene_name"_mesh.ply --algorithm Poisson --poisson_depth 14"
-   dti_triangulation $base_path/$scene_name/full/poisson_sampling_pca.ply  $base_path/$scene_name/full/"$scene_name"_mesh.ply --algorithm Poisson --poisson_depth 14
+   echo "execute: dti_triangulation $base_path/$scene_name/full/"$scene_name"_cloud.ply  $base_path/$scene_name/full/"$scene_name"_mesh.ply --algorithm Poisson --poisson_depth 12"
+   dti_triangulation $base_path/$scene_name/full/"$scene_name"_cloud.ply  $base_path/$scene_name/full/"$scene_name"_mesh.ply --algorithm Poisson --poisson_depth 12
   
 done

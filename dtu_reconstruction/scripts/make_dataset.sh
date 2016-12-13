@@ -47,18 +47,31 @@ for dir in /media/thso/Elements/scene_data/*
         #cp ${dir}/pos_09/stl_to_world_trfm_9.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_to_world_trfm_09.txt
         #cp ${dir}/pos_10/stl_to_world_trfm_10.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_to_world_trfm_10.txt
 
+	#Copy stl icp transformations
+        cp ${dir}/pos_00/stl_icp_trfm_0.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_00.txt
+        cp ${dir}/pos_01/stl_icp_trfm_1.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_01.txt
+        cp ${dir}/pos_02/stl_icp_trfm_2.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_02.txt
+        cp ${dir}/pos_03/stl_icp_trfm_3.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_03.txt
+        cp ${dir}/pos_04/stl_icp_trfm_4.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_04.txt
+        cp ${dir}/pos_05/stl_icp_trfm_5.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_05.txt
+        cp ${dir}/pos_06/stl_icp_trfm_6.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_06.txt
+        cp ${dir}/pos_07/stl_icp_trfm_7.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_07.txt
+        cp ${dir}/pos_08/stl_icp_trfm_8.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_08.txt
+        cp ${dir}/pos_09/stl_icp_trfm_9.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_09.txt
+        cp ${dir}/pos_10/stl_icp_trfm_10.txt ${save_path}scenes/scene_${scene_num}/stl/trfm/stl_icp_trfm_10.txt
+
   	#Copy cropped kinect clouds
-        cp ${dir}/pos_00/kinect_0.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_00.ply
- 	cp ${dir}/pos_01/kinect_1.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_01.ply
- 	cp ${dir}/pos_02/kinect_2.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_02.ply
- 	cp ${dir}/pos_03/kinect_3.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_03.ply
- 	cp ${dir}/pos_04/kinect_4.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_04.ply
-	cp ${dir}/pos_05/kinect_5.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_05.ply
- 	cp ${dir}/pos_06/kinect_6.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_06.ply
- 	cp ${dir}/pos_07/kinect_7.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_07.ply
- 	cp ${dir}/pos_08/kinect_8.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_08.ply
- 	cp ${dir}/pos_09/kinect_9.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_09.ply
- 	cp ${dir}/pos_10/kinect_10.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_10.ply
+     #   cp ${dir}/pos_00/kinect_0.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_00.ply
+ #	cp ${dir}/pos_01/kinect_1.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_01.ply
+# 	cp ${dir}/pos_02/kinect_2.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_02.ply
+# 	cp ${dir}/pos_03/kinect_3.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_03.ply
+ #	cp ${dir}/pos_04/kinect_4.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_04.ply
+#	cp ${dir}/pos_05/kinect_5.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_05.ply
+ #	cp ${dir}/pos_06/kinect_6.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_06.ply
+ #	cp ${dir}/pos_07/kinect_7.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_07.ply
+ #	cp ${dir}/pos_08/kinect_8.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_08.ply
+ #	cp ${dir}/pos_09/kinect_9.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_09.ply
+ #	cp ${dir}/pos_10/kinect_10.ply ${save_path}scenes/scene_${scene_num}/kinect/kinect_10.ply
         #cp ${dir}/full_stl.ply ${save_path}scenes/scene_${scene_num}/stl/stl_full.ply
 
 
