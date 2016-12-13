@@ -1,10 +1,12 @@
 clc;clear;close all;
 
 % Output PDFs
-figure_output_dir = '~/DTU_ROBOT/feature_matching_benchmark/output/bologna2_figures/'; % Comment to avoid
-zoomed_plots = 0; % Use this for [uwa queens rgbd_scenes_0.125]
-zoom_y_limits = [0 0.35]; % Only used if zoomed_plots == 1
-zoom_y_ticks = 0:0.05:0.35; % Only used if zoomed_plots == 1
+figure_output_dir = '~/DTU_ROBOT/feature_matching_benchmark/'; % Comment to avoid
+%figure_output_dir = '~/DTU_ROBOT/feature_matching_benchmark/output/bologna/figures';
+
+zoomed_plots = 1; % Use this for [uwa queens rgbd_scenes_0.125]
+zoom_y_limits = [0 0.25]; % Only used if zoomed_plots == 1
+zoom_y_ticks = 0:0.05:0.25; % Only used if zoomed_plots == 1
 
 % Opts
 use_pca = 0; % Use optionally for [bologna2]
@@ -26,8 +28,14 @@ end
 % radius_mul = {'30','20','30','30','30','30','30'};
 
 % Bologna 2 outputs (and PCA)
-data_dir = 'output/bologna2';
-radius_mul = {'30','20','30','30','30','30','30','20','30'};
+%data_dir = 'output/bologna2';
+%radius_mul = {'30','20','30','30','30','30','30','20','30'};
+%radius_mul = {'30','30','30','30','30'};
+
+% Our outputs (and PCA)
+data_dir = 'output/our/stl/final_data';
+radius_mul = {'20','17.5','31','20','17.5','30','25','22.5'}; 
+%radius_mul = {'30','12.5','31','20','17.5'}%,'15','15'}40
 
 % Setting legend position for the pca case:
 % set(findobj(gcf,'Type','axes','Tag','legend'), 'position', [0.6198 0.1510 0.4299 0.8765]);
@@ -53,17 +61,67 @@ if use_pca && use_fusion, error('Flags use_pca and use_fusion are exclusive!'); 
 if use_pca, data_dir = [data_dir '_pca']; end
 if use_fusion, data_dir = [data_dir '_fusion']; end
 
+object_nr= 36;
+objects = {
+    '1-Small_house',
+    '2-Pizza_house',
+    '3-House_cocktailbar',
+    '4-Yellow_house',
+    '5-Angel',
+    '6-Birds',
+    '7-Cranium',
+    '8-Rabbit',
+    '9-Neutral',
+    '10-Sanex',
+    '11-Cup',
+    '12-Sponge',
+    '13-Tape',
+    '14-Coke',
+    '15-Pringles',
+    '16-Filler',
+    '17-Water_softner',
+    '18-Hand_wash',
+    '19-Lego',
+    '20-Mounting_',
+    '23-Emergency_button',
+    '24-Water_trap',
+    '25-Psu',
+    '26-Pump_house',
+    '28-Angle_bar',
+    '31-White_box',
+    '32-Power_plug_small_6703',
+    '33-Power_plug_medium_6704',
+    '34-Power_plug_large',
+    '35-Power_plug_8656',
+    '36-Power_plug_8657',
+    '37-Thermostat',
+    '38-Wheel',
+    '39-Metal_triangle',
+    '40-Orange_drainpipe',
+    '41-Brake_disc',
+    '42-White_plastic_part1',
+    '43-White_plastic_part2',
+    '44-Danfoss_cap',
+    '45-Galvanized_box',
+    '46-White_plastic_wheel',
+    '47-Pipe1_block',
+    '48-Pipe2',
+    '50-Cobber_disc',
+    '51-Galvanized_fork',
+    'all'
+};
+
 % All features
 features_all = {
-    'ecsad'
-    'fpfh'
-    'ndhist'
-    'rops'
-    'shot'
-    'si'
+    'ecsad',
+    'fpfh',
+    'ndhist',
+    'rops',
+    'shot',
+     'si',
     'usc'
-    'pfh'
-    '3dsc'
+    %  'pfh'
+ %   '3dsc'
 };
 
 % PCA features
@@ -144,7 +202,7 @@ for distance = distances
     % Precision and recall generated from data, one column per feature
     precision = [];
     recall = [];
-    max_f1 = zeros(1, numel(features));
+    auc = zeros(1, numel(features));
 
     % Loop over features and load precision and recall
     for i = 1:numel(features)
@@ -154,7 +212,8 @@ for distance = distances
         if use_fusion
             fid = fopen([data_dir '/matching_output_' features{i} '_' distance{1} '.txt']);
         else
-            fid = fopen([data_dir '/matching_output_' features{i} '_' radius_mul{i} '_' distance{1} '.txt']);
+            fid = fopen([data_dir '/matching_output_' features{i} '_' radius_mul{i} '_' distance{1} '_' objects{object_nr} '_' '.txt']); %'_' objects{object_nr}
+            [data_dir '/matching_output_' features{i} '_' radius_mul{i} '_' distance{1} '_' objects{object_nr} '_' '.txt']
         end
         if fid == -1, warning('No data found! Continuing...'), continue; end
         data_feature = fread(fid, inf, 'float');
@@ -178,7 +237,8 @@ for distance = distances
         % Store precision and recall
         precision = [precision pr_feature(:,1)];
         recall = [recall pr_feature(:,2)];
-        max_f1(i) = max(2 * pr_feature(:,1) .* pr_feature(:,2) ./ (pr_feature(:,1) + pr_feature(:,2)));
+%         auc(i) = max(2 * pr_feature(:,1) .* pr_feature(:,2) ./ (pr_feature(:,1) + pr_feature(:,2)));
+        auc(i) = trapz(pr_feature(:,2),pr_feature(:,1));
     end
     
     if isempty(precision), continue; end
@@ -228,14 +288,14 @@ for distance = distances
         
         % Present
         disp 'AVERAGE PER-VERTEX TIMINGS AND STATS:';
-        chars = fprintf('Feature\t\tEstimation [ms]\t\tMatching [ms]\t\tMax F1\t\tRecall\n');
+        chars = fprintf('Feature\t\tEstimation [ms]\t\tMatching [ms]\t\tAUC\t\tRecall\n');
         fprintf('-------\t\t---------------\t\t-------------\t\t------\t\t------\n');
         for i = 1:numel(features)
             fprintf('%s\t\t%.3f\t\t\t%.3f\t\t\t%.3f\t\t%.3f\n',...
                 features{i},...
                 mean(feature_timings(:,i)),...
                 mean(match_timings(:,i)),...
-                max_f1(i),...
+                auc(i),...
                 recall(end,i));
         end
         fprintf('-------\t\t---------------\t\t-------------\t\t------\t\t------\n');
@@ -254,7 +314,7 @@ for distance = distances
     if verbose
         % Generate legends
         legends = cell(1,numel(features));
-        for i = 1:numel(features), legends{i} = [label_map(features{i}) ' (' sprintf('%.3f', max_f1(i)) ')']; end
+        for i = 1:numel(features), legends{i} = [label_map(features{i}) ' (' sprintf('AUC %.3f', auc(i)) ')']; end
         
         % Show full plot, if not zoomed enabled
         if ~zoomed_plots
@@ -271,7 +331,8 @@ for distance = distances
             set(gca, 'fontsize', font_size);
             
             if exist('figure_output_dir') && length(figure_output_dir) > 0
-                figure_output_file = [figure_output_dir '/' strrep(data_dir, 'output/', 'output_') '_' distance{1}];
+                %figure_output_file = [figure_output_dir '/' data_dir '_' distance{1}];
+                figure_output_file = [figure_output_dir '/' data_dir '/' objects{object_nr} '_' distance{1}]
                 figure_output_file = strrep(figure_output_file, '.', ''); % Dots are not handled well by pdflatex
                 % Special case for fusion: two possibly graphs
                 if use_fusion
@@ -295,6 +356,7 @@ for distance = distances
             end
             xlim([0 1]), set(gca, 'xtick', 0:0.1:1)
             xlabel('1 - Precision', 'fontsize', font_size), ylabel('Recall', 'fontsize', font_size)
+            title(strrep(objects{object_nr},'_', ' '))
             % title(['Results for ' distance ' distance'])
             if legend_on, legend(legends, 'location', 'northwest', 'fontsize', font_size_legend); end
             set(gca, 'fontsize', font_size);
@@ -328,7 +390,9 @@ if zoomed_plots
 %         assert(numel(zoomed_plot_ax) == numel(distances));
         for i = 1:numel(zoomed_plot_ax)
             distance = get(zoomed_plot_ax(i), 'UserData');
-            figure_output_file = [figure_output_dir '/' strrep(data_dir, 'output/', 'output_') '_' distance '_zoom'];
+            figure_output_file = [figure_output_dir '/' data_dir '/' objects{object_nr} '_' distance '_zoom' ]
+            %figure_output_file = [figure_output_dir '/' strrep(data_dir, 'output/', 'output_') '_' distance '_zoom']
+            %figure_output_file = [figure_output_dir '/' strrep(data_dir, 'output_') '_' distance '_zoom'];
             figure_output_file = strrep(figure_output_file, '.', ''); % Dots are not handled well by pdflatex
             % Special case for fusion: two possibly graphs
             if use_fusion

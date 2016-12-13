@@ -294,7 +294,7 @@ double ComputeCloudResolution(const CloudConstPtr &cloud){
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
+ //   pcl::console::setVerbosityLevel(pcl::console::L_DEBUG);
 
     if(argc < 3){
         pcl::console::print_error("Usage: %s %s", argv[0], "<path to scenes> <path to objects>\n" );
@@ -304,6 +304,11 @@ int main(int argc, char *argv[])
     double inlier_threshold_icp = 0.1;
     QString base_path_ = QString::fromStdString(argv[1]);
     QString base_object_path_ = QString::fromStdString(argv[2]);
+
+    //Create ground_truth dir
+    QDir gt_dir(base_path_ + "ground_truth/");
+    if(!gt_dir.exists())
+        gt_dir.mkdir(base_path_ + "ground_truth/");
 
     //Allocate clouds
     CloudPtr object_aligned_(new Cloud);
@@ -318,6 +323,10 @@ int main(int argc, char *argv[])
 
     //Load full scene
     QString cloud_path(base_path_ + "stl/stl_full.ply");
+    QString scene_name = base_path_;
+    scene_name.remove(0, scene_name.lastIndexOf("/")-9).remove(9,9);
+
+    std::cout << "Scene name: " << scene_name.toStdString() << std::endl;
 
     pcl::console::print_info("Loading full scene: %s\n", cloud_path.toStdString().c_str());
     //Load clouds
@@ -328,9 +337,10 @@ int main(int argc, char *argv[])
     pcl::fromPCLPointCloud2(mesh_->cloud, *scene_full);
 
     //Loading all annotated poses
-    QDir dir(base_path_ + "/stl");                            //Opens the path
+    QDir dir(base_path_ + "stl/");                            //Opens the path
     dir.setFilter(QDir::Files | QDir::NoDotAndDotDot | QDir::NoSymLinks);
     QStringList filter;  filter << "stl_full_*.txt";
+
 
     //Loop through all the found poses
     foreach(QString object, dir.entryList(filter)) {
@@ -343,7 +353,7 @@ int main(int argc, char *argv[])
 
         //Load model
         QString object_name = object.remove(object.length()-9,9);
-        QString object_path(base_object_path_ + object_name + "/" + object_name + "_mesh.ply");
+        QString object_path(base_object_path_ + object_name + "/" + object_name + ".ply");
 
         pcl::console::print_info("Loading object: %s\n", object_name.toStdString().c_str());
         //Load clouds
@@ -354,11 +364,11 @@ int main(int argc, char *argv[])
         //Apply object transformation
         pcl::fromPCLPointCloud2(object_mesh_->cloud, *object_cloud);
         pcl::transformPointCloud<PointT>(*object_cloud, *object_aligned_, transform_);
-        pcl::io::savePCDFile("object_aligned.pcd", *object_aligned_);
-        pcl::io::savePCDFile("scene_full.pcd", *scene_full);
+       // pcl::io::savePCDFile("object_aligned.pcd", *object_aligned_);
+       // pcl::io::savePCDFile("scene_full.pcd", *scene_full);
 
         //Compute poses in the 11 sensor views
-        for (int i = 0; i < 10; i++){
+        for (int i = 0; i < 11; i++){
 
             PCL_INFO("Aligning view nr: %d\n",i );
 
@@ -366,7 +376,13 @@ int main(int argc, char *argv[])
             QString path(base_path_ + "stl/trfm/stl_to_world_trfm_" + QString::number(i) + ".txt");
             Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
             mat = readMatrix(path);
-            Eigen::Matrix4f trfm = mat.inverse();
+
+            //Load ICP transform
+            QString path_icp(base_path_ + "stl/trfm/stl_icp_trfm_" + QString("%1").arg(i,2, 10, QChar('0')) + ".txt");
+            std::cout << "Loading: " << path_icp.toStdString() << std::endl;
+            Eigen::Matrix4f mat_icp = Eigen::Matrix4f::Identity();
+            mat_icp = readMatrix(path_icp);
+            Eigen::Matrix4f trfm = mat.inverse() * mat_icp.inverse();
 
             //Load scene
             QString cloud_path(base_path_ + "stl/stl_" + QString::number(i) + ".ply");
@@ -379,7 +395,14 @@ int main(int argc, char *argv[])
 
             pcl::fromPCLPointCloud2(mesh_->cloud, *scene_xx);
 
+         //    std::stringstream ss; ss.str("");
+         //  ss << "scene_"; ss << i; ss << ".pcd";
+        //    pcl::io::savePCDFile(ss.str(), *scene_xx);;
+
             pcl::transformPointCloud<PointT>(*object_aligned_, *local_object_aligned_, trfm);
+
+        //    ss.str(""); ss << object_name.toStdString(); ss << "_in_local_frame"; ss << i; ss << ".pcd";
+        //    pcl::io::savePCDFile(ss.str(), *local_object_aligned_);
             //Compute resolution
             res_ = ComputeCloudResolution(scene_xx);
 
@@ -396,13 +419,13 @@ int main(int argc, char *argv[])
             }
 
 
-            PCL_INFO("Running ICP  with an inlier threshold of %f and %d iterations...\n", res_ * 20, 20);
+            PCL_INFO("Running ICP  with an inlier threshold of %f and %d iterations...\n", res_ * 2, 20);
             Cloud tmp;
             pcl::IterativeClosestPoint<PointT, PointT> icp;
             icp.setInputSource(local_object_aligned_sampled_);
             icp.setInputTarget(scene_xx_sampled);
-            icp.setMaximumIterations(20);
-            icp.setMaxCorrespondenceDistance(res_ * 20);
+            icp.setMaximumIterations(10);
+            icp.setMaxCorrespondenceDistance(res_ * 2);
             icp.align(*local_object_aligned_);
             PCL_INFO("Fitness_score: %d\n",icp.getFitnessScore());
 
@@ -410,9 +433,9 @@ int main(int argc, char *argv[])
                 PCL_ERROR("ICP failed!\n");
             }
 
-            PCL_INFO("Rerunning ICP  with an inlier threshold of %f and %d iterations...\n", res_ * 10, 20);
+  /*          PCL_INFO("Rerunning ICP  with an inlier threshold of %f and %d iterations...\n", res_ * 5, 20);
             icp.setMaximumIterations(20);
-            icp.setMaxCorrespondenceDistance(res_ * 10);
+            icp.setMaxCorrespondenceDistance(res_ * 5);
             icp.align(tmp, icp.getFinalTransformation());
             PCL_INFO("Fitness_score: %d\n",icp.getFitnessScore());
 
@@ -421,38 +444,39 @@ int main(int argc, char *argv[])
             }
 
 
-            PCL_INFO("Rerunning ICP  in full resolution with an inlier threshold of %f and %d iterations...\n", res_ * 5, 20);
+            PCL_INFO("Rerunning ICP  in full resolution with an inlier threshold of %f and %d iterations...\n", res_ * 2, 20);
           //  icp.setInputSource(local_object_aligned_);
           //  icp.setInputTarget(scene_xx);
             icp.setMaximumIterations(20);
-            icp.setMaxCorrespondenceDistance(res_ * 5);
+            icp.setMaxCorrespondenceDistance(res_ * 2);
             icp.align(tmp, icp.getFinalTransformation());
             PCL_INFO("Fitness_score: %d\n",icp.getFitnessScore());
 
             if(!icp.hasConverged()) {
                 PCL_ERROR("Fine ICP failed!\n");
-            }else{
+            }
+*/
+            else{
 
-                std::cout << "icp.getFinalTransformation():\n" << icp.getFinalTransformation() << std::endl;
+              //  std::cout << "icp.getFinalTransformation():\n" << icp.getFinalTransformation() << std::endl;
 
-                Eigen::Matrix4f final_trfm = mat.inverse() * transform_;
+                Eigen::Matrix4f final_trfm = trfm * transform_;
                 Eigen::Matrix4f final_trfm_icp = icp.getFinalTransformation() * final_trfm;
                 CloudPtr temp(new Cloud);
                 pcl::transformPointCloud<PointT>(*object_cloud, *temp, final_trfm_icp);
-                std::stringstream ss; ss << object_name.toStdString(); ss << "_in_local_frame"; ss << i; ss << ".pcd";
-                pcl::io::savePCDFile(ss.str(), *temp);
-                //pcl::io::savePCDFile("local_cloud_aligned_.pcd", *local_object_aligned_);
+                //ss.str(""); ss << object_name.toStdString(); ss << "_in_local_frame"; ss << i; ss << ".pcd";
+                //pcl::io::savePCDFile(ss.str(), *temp);
+              //  pcl::io::savePCDFile("local_cloud_aligned_.pcd", *local_object_aligned_);
 
-                ss.str("");
-                ss << "scene_"; ss << i; ss << ".pcd";
-                pcl::io::savePCDFile(ss.str(), *scene_xx);;
 
                 float rms_ = computeRMSError(local_object_aligned_, scene_xx, "nn");
                 double occlusion_ = estimateOcclusion(local_object_aligned_, scene_xx);
                 double clutter_ = estimateClutter(local_object_aligned_, scene_xx);
 
                 //Save ground truth pose
-                QString name(base_path_ + "stl/stl_" + QString::number(i) + "-" + object_name + ".xf");
+                QString name(base_path_ + "ground_truth/" + scene_name + "_" + QString("%1").arg(i,2, 10, QChar('0')) + "-" + object_name + ".xf");
+
+                std::cout << "Saving ground_truth .xf: " << name.toStdString() << std::endl;
                 std::ofstream file(name.toStdString().c_str());
                 if (file.is_open()){
                     file << final_trfm << '\n';

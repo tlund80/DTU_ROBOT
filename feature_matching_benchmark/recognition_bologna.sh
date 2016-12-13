@@ -5,11 +5,11 @@
 ########################################################################
 
 # General
-dec=0.05 #0.5 #0.125 # Decimation
+dec=-1 #0.05 #0.5 #0.125 # Decimation
 
 # Features
-features=ecsad,fpfh,ndhist,rops,shot,si,usc,pfh,3dsc
-rad=10,10,20,12.5,17.5,10,10,10,10
+features=ecsad #,fpfh,ndhist,rops,shot,si,usc,pfh,3dsc
+rad=10 #,10,20,12.5,17.5,10,10,10,10
 res=5 # Feature resolution multiplier, scenes
 resq=2.5 # Feature resolution multiplier, objects
 
@@ -21,7 +21,7 @@ icp_iter=50 # ICP iterations
 thres=5 # Inlier threshold multiplier, RANSAC+ICP, set to <= 0 for using 1 x mesh resolution
 
 # Pose tolerances (metric and degrees)
-trans_tol=50
+trans_tol=5
 rot_tol=7.5
 
 # Paths
@@ -45,7 +45,7 @@ pose_suffix=xf
 # Options and flags
 options="--pose-separator=$pose_separator --decimation=$dec --radius=$rad --resolution=$res --resolution-query=$resq --threshold=$thres --features=$features"
 options_rec="--ransac-iterations=$ransac_iter --inlier-fraction=$inlier_frac --icp-iterations=$icp_iter --correspondence-fraction=$corr_frac --translation-tolerance=$trans_tol --rotation-tolerance=$rot_tol"
-flags="--pca --verbose"
+flags="--verbose"
 
 # Start
 $exec_dir/$exec_name "$objects" "$scenes" $pose_dir $pose_suffix $output_dir $options $options_rec $flags $* 

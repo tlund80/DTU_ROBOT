@@ -280,7 +280,7 @@ double ManualRegistration::estimateOcclusion(const ManualRegistration::CloudCons
         continue;
       size_t point_nn_i = nn_indices.front();
 
-      float dist = squaredEuclideanDistance (model->points[point_i], scene->points[point_nn_i]);
+      float dist = sqrtf(squaredEuclideanDistance (model->points[point_i], scene->points[point_nn_i]));
      
       /// Save the point if the distance is below 2 * resolution 
       if(dist < 2 * res_)

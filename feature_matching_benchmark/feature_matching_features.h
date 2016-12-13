@@ -26,14 +26,14 @@ extern size_t fnum;
  */
 const std::string fnamesAll[] = {
         "ecsad",
-        "fpfh",
-        "ndhist",
-        "rops",
-        "shot",
-        "si",
-        "usc",
-	"pfh",
-	"3dsc"
+         "fpfh",
+         "ndhist",
+         "rops",
+         "shot",
+         "si",
+         "usc",
+                         //  "pfh"
+        "3dsc"
 };
 
 // Useful macros

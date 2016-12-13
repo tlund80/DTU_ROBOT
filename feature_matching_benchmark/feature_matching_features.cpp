@@ -9,6 +9,7 @@
 #include <pcl/features/3dsc.h>
 #include <pcl/features/usc.h>
 #include <pcl/features/fpfh.h>
+#include <pcl/features/fpfh_omp.h>
 #include <pcl/features/pfh.h>
 #include <pcl/features/shot.h>
 #include <pcl/features/spin_image.h>
@@ -43,7 +44,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
     
     if(HAS_FEATURE("ecsad")) {
         const size_t fidx = FEATURE_IDX("ecsad");
-        
+        COVIS_MSG("\t" << "- ecsad");
         pcl::PointCloud<EcsadT> ecsad;
         feature::ECSAD<PointT> est;
         est.setRadius(radius[fidx]);
@@ -60,9 +61,10 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
 
     if(HAS_FEATURE("fpfh")) {
         const size_t fidx = FEATURE_IDX("fpfh");
+        COVIS_MSG("\t" << "- fpfh");
         
         pcl::PointCloud<FpfhT> fpfh;
-        pcl::FPFHEstimation<PointT,PointT,FpfhT> est;
+        pcl::FPFHEstimationOMP<PointT,PointT,FpfhT> est;
         est.setRadiusSearch(radius[fidx]);
         est.setSearchSurface(surf);
         est.setInputNormals(surf);
@@ -79,7 +81,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
 
     if(HAS_FEATURE("ndhist")) {
         const size_t fidx = FEATURE_IDX("ndhist");
-        
+        COVIS_MSG("\t" << "- ndhist");
         pcl::PointCloud<NDHist> ndhist;
         feature::DistanceNormalHistogram<PointT,8,16> est;
         est.setRadius(radius[fidx]);
@@ -97,7 +99,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
 
     if(HAS_FEATURE("rops")) {
         const size_t fidx = FEATURE_IDX("rops");
-        
+        COVIS_MSG("\t" << "- rops");
         pcl::PointCloud<RopsT> rops;
         pcl::ROPSEstimationFix<PointT,RopsT> est;
         est.setRadiusSearch(radius[fidx]);
@@ -117,7 +119,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
 
     if(HAS_FEATURE("ropsmod")) {
         const size_t fidx = FEATURE_IDX("ropsmod");
-        
+        COVIS_MSG("\t" << "- ropsmod");
         pcl::PointCloud<pcl::ReferenceFrame>::Ptr frames(new pcl::PointCloud<pcl::ReferenceFrame>);
         pcl::SHOTLocalReferenceFrameEstimationMod<PointT> lrfmod;
         lrfmod.setRadiusSearch(radius[fidx]);
@@ -146,7 +148,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
 
     if(HAS_FEATURE("shot")) {
         const size_t fidx = FEATURE_IDX("shot");
-        
+        COVIS_MSG("\t" << "- shot");
         pcl::PointCloud<ShotT> shot;
         pcl::SHOTEstimation<PointT,PointT,ShotT> est;
         est.setRadiusSearch(radius[fidx]);
@@ -171,7 +173,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
 
     if(HAS_FEATURE("si")) {
         const size_t fidx = FEATURE_IDX("si");
-        
+        COVIS_MSG("\t" << "- si");
         pcl::PointCloud<SpinT> si;
         pcl::SpinImageEstimation<PointT,PointT,SpinT> est;
         est.setRadiusSearch(radius[fidx]);
@@ -189,7 +191,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
     }
     if(HAS_FEATURE("usc")) {
         const size_t fidx = FEATURE_IDX("usc");
-        
+        COVIS_MSG("\t" << "- usc");
         pcl::PointCloud<UscT> usc;
         pcl::UniqueShapeContext<PointT,UscT> est;
         est.setRadiusSearch(radius[fidx]); // 20*mr in paper
@@ -210,7 +212,7 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
     
      if(HAS_FEATURE("pfh")) {
      const size_t fidx = FEATURE_IDX("pfh");
-        
+        COVIS_MSG("\t" << "- pfh");
         pcl::PointCloud<PfhT> pfh;
         pcl::PFHEstimation<PointT,PointT,PfhT> est;
         est.setRadiusSearch(radius[fidx]);
@@ -257,13 +259,13 @@ void features(pcl::PolygonMesh::ConstPtr mesh,
     
       if(HAS_FEATURE("3dsc")) {
         const size_t fidx = FEATURE_IDX("3dsc");
-        
+        COVIS_MSG("\t" << "- 3dsc");
         pcl::PointCloud<DSCT> dsc;
         pcl::ShapeContext3DEstimation <PointT,PointT, DSCT> est;
         est.setRadiusSearch(radius[fidx]); // 20*mr in paper
-        est.setMinimalRadius(0.1 * radius[fidx]); // 0.1*max_radius[fidx] in paper
+        est.setMinimalRadius(0.5 * radius[fidx]); // 0.1*max_radius[fidx] in paper
         //est.setLocalRadius(radius[fidx]); // RF radius[fidx], 20*mr in paper
-        est.setPointDensityRadius(2.0 * resolution); // 2*mr in paper
+        est.setPointDensityRadius(4.0 * resolution); // 2*mr in paper
         est.setSearchSurface(surf);
         est.setInputCloud(query);
 	est.setInputNormals(surf);

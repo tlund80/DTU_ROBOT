@@ -8,8 +8,8 @@
 dec=0.125 # Decimation
 
 # Features
-features=ecsad,ndhist,rops,shot,si
-rad=10,20,12.5,17.5,10
+features=ecsad,ndhist,rops #,shot,si
+rad=10,20,12.5 #,17.5,10
 res=5 # Feature resolution multiplier, scenes
 resq=2.5 # Feature resolution multiplier, objects
 

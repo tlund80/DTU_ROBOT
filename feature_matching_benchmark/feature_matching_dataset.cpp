@@ -78,13 +78,21 @@ int main(int argc, const char** argv) {
 
     // Get positionals
     const std::vector<std::string> queries = po.getVector("query");
-    const std::vector<std::string> targets = po.getVector("target");
+    std::vector<std::string> targets = po.getVector("target");
     const std::string poseDir = po.getValue("pose-directory");
     const std::string poseSuffix = po.getValue("pose-suffix");
     std::string outputDir = po.getValue("output-directory");
     COVIS_ASSERT(!queries.empty() && !targets.empty());
     COVIS_ASSERT(!poseDir.empty() && !poseSuffix.empty() && !outputDir.empty());
 
+    //This is a HACK to handle the "argument too long" linux exception
+    for(int i = 0; i< targets.size();i++){
+        std::stringstream ss;
+       // ss << "/media/thso/Elements/pose_dataset/scenes/kinect/mesh/normal_smooth/"; ss << targets[i];
+        ss << "/media/thso/Elements/pose_dataset/scenes/stl/dec0.5_sampled/"; ss << targets[i];
+        targets.at(i) =  ss.str();
+       // std::cout << targets[i] << std::endl;
+    }
     // Get feature list
     fnames = po.getVector("features");
     if(fnames.empty() || (fnames.size() == 1 && boost::iequals(fnames[0], "all"))) { // No features provided, or "all"
@@ -266,10 +274,10 @@ int main(int argc, const char** argv) {
             }
             surfq[i]->points[j].getNormalVector3fMap() = n;
         }
-        
+
         if(invalidNormals > 0)
             COVIS_MSG_WARN("Warning: mesh has " << invalidNormals << " invalid normals!");
-        
+
         // Copy normalized normals points back to mesh
         pcl::toPCLPointCloud2(*surfq[i], meshq[i]->cloud);
         
@@ -317,8 +325,9 @@ int main(int argc, const char** argv) {
     if(verbose)
         COVIS_MSG_INFO("Estimating average object mesh resolution...");
     Eigen::VectorXd resolutions(queries.size());
-    for(size_t i = 0; i < queries.size(); ++i)
-        resolutions[i] = resolution(meshq[i], surfq[i]);
+    for(size_t i = 0; i < queries.size(); ++i){
+       resolutions[i] = resolution(meshq[i], surfq[i]);
+    }
     
     avgModelMeshRes = resolutions.mean();
     for(size_t i = 0; i < frad.size(); ++i)
@@ -414,7 +423,11 @@ int main(int argc, const char** argv) {
     Eigen::MatrixXf matchTimings[mnum];
     for(size_t i = 0; i < mnum; ++i)
         matchTimings[i] = Eigen::MatrixXf(targets.size(), (pca ? fnumPCA : fnum));
-    
+
+    double feature_matches = 0;
+    double feature_total = 0;
+
+   //  for(size_t i = 0; i < 22; ++i) {
     for(size_t i = 0; i < targets.size(); ++i) {
         const boost::filesystem::path tpath(targets[i]);
         const std::string pscn = tpath.stem().string();
@@ -430,7 +443,7 @@ int main(int argc, const char** argv) {
         COVIS_ASSERT_MSG(!mesht->polygons.empty() && !surft->empty(), "Empty scene polygon or vertex set!");
         
         // Normalize the normals
-        size_t invalidNormals = 0;
+   /*     size_t invalidNormals = 0;
         for(size_t j = 0; j < surft->size(); ++j) {
             Eigen::Vector3f n = surft->points[j].getNormalVector3fMap();
             if(!n.hasNaN() && n.norm() > 1e-5f) {
@@ -444,7 +457,7 @@ int main(int argc, const char** argv) {
         
         if(invalidNormals > 0)
             COVIS_MSG_WARN("Warning: mesh has " << invalidNormals << " invalid normals!");
-
+*/
         // Copy normalized normals back to mesh
         pcl::toPCLPointCloud2(*surft, mesht->cloud);
 
@@ -461,6 +474,7 @@ int main(int argc, const char** argv) {
             COVIS_MSG_INFO("Estimating scene mesh resolution...");
         const double sceneRes = resolution(mesht, surft);
 
+        COVIS_MSG_INFO("Scene mesh resolution: " << sceneRes);
         const double thres = thresMul * sceneRes;
         if(verbose)
             COVIS_MSG_INFO("Setting inlier threshold to: " << thres);
@@ -516,14 +530,19 @@ int main(int argc, const char** argv) {
             for(core::Correspondence::Vec::const_iterator it = pointCorr->begin(); it != pointCorr->end(); ++it)
                 if(it->distance[0] <= thressq)
                     ++numInliers;
-            
-            queryMask[j] = (numInliers >= size_t(0.05 * queryTransformed->size()));
+
+
+            COVIS_MSG_INFO("Number of object inliers in scene " << numInliers);
+            COVIS_MSG_INFO("\t treshold " << 0.05 * queryTransformed->size());
+
+            queryMask[j] = (numInliers >= size_t(0.05 * queryTransformed->size()));//0.05
             if(!queryMask[j]) {
                 COVIS_MSG_WARN("Too few valid points (" << numInliers << "/" << queryTransformed->size() <<
                         ") for object \"" << pobj << "\" in scene \"" << pscn << "\"" << "!");
                 continue;
-            }
-            
+          }//else{ //THSO ADD this else
+                COVIS_MSG_INFO("Valid points (" << numInliers << "/" << queryTransformed->size() <<
+                        ") for object \"" << pobj << "\" in scene \"" << pscn << "\"" << "!");
             // Now add points/features to the virtual scene
             *queriesTransformed += *queryTransformed;
             for(size_t k = 0; k < fnum; ++k) {
@@ -534,8 +553,10 @@ int main(int argc, const char** argv) {
                 featqScene[k].conservativeResize(rowsFirst + rowsSecond, cols);
                 featqScene[k].block(rowsFirst, 0, rowsSecond, cols) = featq[j][k];
             }
-            
-            ++ validObjects;
+
+
+             ++ validObjects;
+         //   }
         } // End local loop over queries (j)
         
         // Check that we have the correct number of features
@@ -562,7 +583,8 @@ int main(int argc, const char** argv) {
                 target->push_back(surft->points[(*corrQueryTarget)[j].match[0]]);
         }
         
-//        show(mesht, target);
+   //    show(mesht, target);
+
         
         /**
          * TODO: In case of scene-scene matching, also remove non-overlapping data from query
@@ -696,7 +718,7 @@ int main(int argc, const char** argv) {
                 COVIS_MSG_INFO("Matching a total of " << queriesTransformed->size() << " --> " << target->size() <<
                         " features from " << validObjects << " objects --> scene...");
         }
-        
+
         // Loop over all metrics
         for(size_t j = 0; j < mnum; ++j) {
             const DISTANCE_METRIC mj = str2m(mnames[j]);
@@ -799,14 +821,17 @@ int main(int argc, const char** argv) {
                 featureInliers[k] = filter.filter(*featureCorr[k]); // Only for printing below
                 featureMask[k] = filter.getMask();
                 COVIS_ASSERT(featureMask[k].size() == featureCorr[k]->size());
-                
+
+                feature_matches += double(featureInliers[k]->size());
+                feature_total += double(target->size());
                 if(verbose) {
                     if(pca)
                         COVIS_MSG("\t" << fnamesPCA[k] << ": " << featureInliers[k]->size() << "/" << featureCorr[k]->size());
                     else if(fusion)
                         COVIS_MSG("\t" << fnamesFusion[k] << ": " << featureInliers[k]->size() << "/" << featureCorr[k]->size());
                     else
-                        COVIS_MSG("\t" << fnames[k] << ": " << featureInliers[k]->size() << "/" << featureCorr[k]->size());
+                        COVIS_MSG("\t" << fnames[k] << ": " << featureInliers[k]->size() << "/" << featureCorr[k]->size() << " (" << (double(featureInliers[k]->size())/double(target->size()))*100 << "%)");
+
                 }
             }
             
@@ -819,7 +844,10 @@ int main(int argc, const char** argv) {
                             Eigen::Vector2f((*featureCorr[k])[l].distance[0], float(featureMask[k][l]));
             }
         } // End loop over metrics to find feature matches (j)
+
     } // End loop over all scenes (i)
+
+      COVIS_MSG("\t Overall matching:" << (feature_matches/feature_total)*100 << "%");
     
     /*
      * Generate output files
@@ -830,10 +858,14 @@ int main(int argc, const char** argv) {
             const DISTANCE_METRIC mi = str2m(mnames[i]);
             
             for(size_t j = 0; j < (pca ? fnumPCA : (fusion ? fnumFusion : fnum)); ++j) {
+                std::stringstream ss;
+              //  for(size_t i = 0; i < queries.size(); ++i)
+              //       ss << boost::filesystem::path(queries[i]).stem().string(); ss << "_";
+
                 // TODO: Don't use any feature radius suffix in PCA/fusion cases
                 const std::string suffixMatchingOutput = (fusion ? 
                         m2str(mi) + ".txt" :
-                        core::stringify(fradMul[j]) + "_" + m2str(mi) + ".txt");
+                        core::stringify(fradMul[j]) + "_" + m2str(mi) + ".txt"); //"_" + ss.str() +
                 
                 std::string name;
                 if(pca)
@@ -842,7 +874,11 @@ int main(int argc, const char** argv) {
                     name = fnamesFusion[j];
                 else
                     name = fnames[j];
-                core::write(outputDir + "/matching_output_" + name + "_" + suffixMatchingOutput, matchingOutput[i][j], true, true, append);
+
+
+
+
+                core::write(outputDir + "/matching_output_" + name + "_" + suffixMatchingOutput , matchingOutput[i][j], true, true, append);
             }
             
             // TODO: Also store the matching results using all components

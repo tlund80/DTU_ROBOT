@@ -17,7 +17,7 @@ data_dir=~/workspace/datasets/uwa
 output_dir=output/uwa
 
 # Positionals
-objects=`ls $data_dir/models/*.ply -v1 | grep -v rhino`
+objects=`ls $data_dir/models/*.ply -v1 | grep 'chef'`
 scenes=`ls $data_dir/scenes/*.ply -v1`
 #scenes=`ls $data_dir/scenes/*.ply -v1 | grep 'rs1.ply'` # Fast test of first scene
 pose_dir=$data_dir/GroundTruth_3Dscenes

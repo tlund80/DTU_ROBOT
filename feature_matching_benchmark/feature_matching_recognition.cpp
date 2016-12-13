@@ -98,12 +98,21 @@ int main(int argc, const char** argv) {
 */
     // Get paths
     const std::vector<std::string> queries = po.getVector("query");
-    const std::vector<std::string> targets = po.getVector("target");
+    std::vector<std::string> targets = po.getVector("target");
     const std::string poseDir = po.getValue("pose-directory");
     const std::string poseSuffix = po.getValue("pose-suffix");
     std::string outputDir = po.getValue("output-directory");
     COVIS_ASSERT(!queries.empty() && !targets.empty());
     COVIS_ASSERT(!poseDir.empty() && !poseSuffix.empty() && !outputDir.empty());
+
+    //This is a HACK to handle the "argument too long" linux exception
+    for(int i = 0; i< targets.size();i++){
+        std::stringstream ss;
+            ss << "/media/thso/Elements/pose_dataset/scenes/stl/dec0.125_sampled/"; ss << targets[i];
+        //ss << "/media/thso/Elements/pose_dataset/scenes/stl/mesh/test/"; ss << targets[i];
+        targets.at(i) =  ss.str();
+      //  std::cout << targets[i] << std::endl;
+    }
 
     // Get feature name list
     fnames = po.getVector("features");
@@ -484,6 +493,7 @@ int main(int argc, const char** argv) {
             COVIS_MSG_INFO("Estimating scene mesh resolution...");
         const double sceneRes = resolution(mesht, surft);
 		const double sceneResSq = sceneRes * sceneRes;
+           COVIS_MSG_INFO("Scene mesh resolution = " << sceneRes);
         
         // Generate search, only used for checking validity of GT poses
         detect::PointSearch<PointT> surftSearch;
@@ -1135,10 +1145,14 @@ int main(int argc, const char** argv) {
      * Store output files
      */
     if(!dryrun) {
+        std::stringstream ss;
+        for(size_t i = 0; i < queries.size(); ++i)
+             ss << boost::filesystem::path(queries[i]).stem().string(); ss << "_";
+
         const std::string suffix = ".txt";
         for(size_t j = 0; j < fnumDetection; ++j) {
-            core::write(outputDir + "/detection_output_" + fnamesDetection[j] + suffix, detectionOutputs[j], true, false, append);
-            core::write(outputDir + "/meta_detection_timings_" + fnamesDetection[j] + suffix, detectionTimings[j], true, false, append);
+            core::write(outputDir + "/detection_output_" + fnamesDetection[j] + "_" + ss.str() + suffix, detectionOutputs[j], true, false, append);
+            core::write(outputDir + "/meta_detection_timings_" + fnamesDetection[j] + "_" + ss.str() + suffix, detectionTimings[j], true, false, append);
         }
     }
     
