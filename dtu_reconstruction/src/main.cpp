@@ -669,7 +669,6 @@ void alignKinectScene(QString base_path){
         return;
     }
 
-
     std::vector<CloudPtr > clouds;
     std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsInitial;
     std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr > cloudsICP;
@@ -771,8 +770,8 @@ void alignKinectScene(QString base_path){
 
        pcl::IterativeClosestPoint<PointTNormal,PointTNormal> icp;
        double res = computeResolution(cloud_n);
-       const double voxel_size =  5 * res;
-       const float inlier_threshold_icp = 10 * res;
+       const double voxel_size =  1 * res;
+       const float inlier_threshold_icp = 25 * res;
 
 
        CloudNormal::Ptr source_ds(new CloudNormal);
@@ -784,6 +783,7 @@ void alignKinectScene(QString base_path){
        vg.setLeafSize(voxel_size, voxel_size, voxel_size);
        vg.filter(*source_ds);
 
+        vg.setLeafSize(4 * voxel_size, 4 * voxel_size, 4 * voxel_size);
        vg.setInputCloud(cloud_full_stl);
        vg.filter(*target_ds);
 
@@ -801,9 +801,9 @@ void alignKinectScene(QString base_path){
             return;
         }
 
-        PCL_INFO("Rerunning fine ICP at with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+        PCL_INFO("Rerunning fine ICP at with an inlier threshold of %f...\n", 0.5 * inlier_threshold_icp);
         icp.setMaximumIterations(25);
-        icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
+        icp.setMaxCorrespondenceDistance(0.5 * inlier_threshold_icp);
         icp.align(tmp, icp.getFinalTransformation());
 
        if(!icp.hasConverged()) {
@@ -811,11 +811,9 @@ void alignKinectScene(QString base_path){
            return;
        }
 
-        PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.05 * inlier_threshold_icp);
-        icp.setInputSource(cloud_n);
-        icp.setInputTarget(cloud_full_stl);
+        PCL_INFO("Rerunning fine ICP in with an inlier threshold of %f...\n", 0.25 * inlier_threshold_icp);
         icp.setMaximumIterations(3);
-        icp.setMaxCorrespondenceDistance(0.05 * inlier_threshold_icp);
+        icp.setMaxCorrespondenceDistance(0.25 * inlier_threshold_icp);
         icp.align(tmp, icp.getFinalTransformation());
 
        if(!icp.hasConverged()) {
@@ -823,9 +821,11 @@ void alignKinectScene(QString base_path){
            return;
        }
 
-       PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.01 * inlier_threshold_icp);
-       icp.setMaximumIterations(3);
-       icp.setMaxCorrespondenceDistance(0.01 * inlier_threshold_icp);
+       PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+       icp.setInputSource(cloud_n);
+       icp.setInputTarget(cloud_full_stl);
+       icp.setMaximumIterations(5);
+       icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
        icp.align(tmp, icp.getFinalTransformation());
 
       if(!icp.hasConverged()) {
@@ -833,9 +833,9 @@ void alignKinectScene(QString base_path){
           return;
       }
 
-      PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.005 * inlier_threshold_icp);
+      PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.01 * inlier_threshold_icp);
       icp.setMaximumIterations(5);
-      icp.setMaxCorrespondenceDistance(0.005 * inlier_threshold_icp);
+      icp.setMaxCorrespondenceDistance(0.01 * inlier_threshold_icp);
       icp.align(tmp, icp.getFinalTransformation());
 
       if(!icp.hasConverged()) {
@@ -866,9 +866,80 @@ void alignKinectScene(QString base_path){
        //First load the stl transformation
         ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/stl_to_world_trfm_"; ss << view_id; ss << ".txt";
         Matrix4f T_stl = readMatrix(QString::fromStdString(ss.str()));
+        //and load the ICP transformation
+        ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/stl_icp_trfm_"; ss << view_id; ss << ".txt";
+        Matrix4f T_icp = readMatrix(QString::fromStdString(ss.str()));
+
        //Transform cloud
-       Matrix4f T_inv = T_stl.inverse();
+       Matrix4f T_inv = T_stl.inverse() * T_icp.inverse();
        pcl::transformPointCloudWithNormals(*cloud_n,*cloud_n,T_inv);
+
+  /*     //Load each view
+       CloudNormal::Ptr cloud_stl (new CloudNormal);
+       ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/stl_"; ss << view_id; ss << ".ply";
+       std::cout << "Loading: " << ss.str() << std::endl;
+       if(ply_reader.read(ss.str(),*cloud_stl) < 0){
+             pcl::console::print_error("Could not load the stl point cloud");// << ss.str());
+           return;
+       }
+
+       PCL_INFO("Refining pose using ICP with an inlier threshold of %f...\n", inlier_threshold_icp);
+
+       icp.setInputSource(cloud_n);
+       icp.setInputTarget(cloud_stl);
+       icp.setMaximumIterations(50);
+       icp.setMaxCorrespondenceDistance(inlier_threshold_icp);
+       icp.align(tmp);
+
+       if(!icp.hasConverged()) {
+            PCL_ERROR("ICP failed!\n");
+            return;
+        }
+
+        PCL_INFO("Rerunning fine ICP at with an inlier threshold of %f...\n", 0.5 * inlier_threshold_icp);
+        icp.setMaximumIterations(25);
+        icp.setMaxCorrespondenceDistance(0.5 * inlier_threshold_icp);
+        icp.align(tmp, icp.getFinalTransformation());
+
+       if(!icp.hasConverged()) {
+           PCL_ERROR("Fine ICP failed!\n");
+           return;
+       }
+
+        PCL_INFO("Rerunning fine ICP in with an inlier threshold of %f...\n", 0.25 * inlier_threshold_icp);
+        icp.setMaximumIterations(3);
+        icp.setMaxCorrespondenceDistance(0.25 * inlier_threshold_icp);
+        icp.align(tmp, icp.getFinalTransformation());
+
+       if(!icp.hasConverged()) {
+           PCL_ERROR("Fine ICP failed!\n");
+           return;
+       }
+
+       PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.1 * inlier_threshold_icp);
+   //    icp.setInputSource(cloud_n);
+   //    icp.setInputTarget(cloud_full_stl);
+       icp.setMaximumIterations(5);
+       icp.setMaxCorrespondenceDistance(0.1 * inlier_threshold_icp);
+       icp.align(tmp, icp.getFinalTransformation());
+
+      if(!icp.hasConverged()) {
+          PCL_ERROR("Fine ICP failed!\n");
+          return;
+      }
+
+      PCL_INFO("Rerunning fine ICP in full resolution with an inlier threshold of %f...\n", 0.01 * inlier_threshold_icp);
+      icp.setMaximumIterations(5);
+      icp.setMaxCorrespondenceDistance(0.01 * inlier_threshold_icp);
+      icp.align(tmp, icp.getFinalTransformation());
+
+      if(!icp.hasConverged()) {
+         PCL_ERROR("Fine ICP failed!\n");
+         return;
+     }
+
+      pcl::transformPointCloudWithNormals(*cloud_n,*cloud_n,icp.getFinalTransformation());
+*/
        ss.str(""); ss << view.absoluteFilePath().toStdString(); ss << "/kinect_"; ss << view_id; ss << ".ply";
        std::cout << "Transforming kinect cloud back to sensor frame and saving: " << ss.str() << std::endl;
        writer.write(ss.str(),*cloud_n,true,false);
@@ -1095,10 +1166,20 @@ void alignSTLScene(QString base_path){
         view_id++;
     }
 
+    //Save icp alignment transform
+    ss.str(""); ss << base_path.toStdString(); ss << "pos_00"; ss << "/stl_icp_trfm_0.txt";
+    std::cout << "Saving alignment trasform: " << ss.str() << std::endl;
+    std::ofstream file(ss.str());
+    if (file.is_open())
+        file << Matrix4f::Identity();
+
+    file.close();
+
+
 
     pcl::IterativeClosestPoint<PointTNormal,PointTNormal> icp;
     CloudNormal::Ptr target = cloudsInitial[0];
-    for (size_t j = 2; j < cloudsInitial.size (); ++j){
+    for (size_t j = 1; j < cloudsInitial.size (); ++j){
             CloudNormal::Ptr source = cloudsInitial[j];
 
             CloudNormal::Ptr source_ds(new CloudNormal);
@@ -1177,16 +1258,25 @@ void alignSTLScene(QString base_path){
              Matrix4f transform_ = Matrix4f::Identity();
             transform_ = icp.getFinalTransformation();
 
+            //Save icp alignment transform
+            ss.str(""); ss << base_path.toStdString(); ss << "pos_"; ss << std::setw(2); ss << std::setfill('0'); ss << j; ss << "/stl_icp_trfm_"; ss << j; ss << ".txt";
+            std::cout << "Saving alignment trasform: " << ss.str() << std::endl;
+            std::ofstream file(ss.str());
+            if (file.is_open())
+                file << transform_;
+
+            file.close();
+
 
             CloudNormal::Ptr cloud_aligned_ (new CloudNormal);
             pcl::transformPointCloud<PointTNormal>(*source, *cloud_aligned_, transform_);
             cloudsICP.push_back(cloud_aligned_);
 
-        /*    pcl::PLYWriter writer;
+            pcl::PLYWriter writer;
             ss.str(""); ss << "/home/thso"; ss << "/stl_align_src"; ss << j; ss << ".ply";
             std::cout << "Saving: " << ss.str() << std::endl;
                         writer.write(ss.str(),*cloud_aligned_,true,false);
-                        */
+
 
        /*     pcl::PLYWriter writer;
             ss.str(""); ss << "/home/thso"; ss << "/stl_align_src"; ss << j; ss << ".ply";
